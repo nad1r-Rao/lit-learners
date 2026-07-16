@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../core/routing/route_names.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/onboarding_viewmodel.dart';
@@ -53,6 +54,14 @@ class _ManualPageState extends State<ManualPage> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: _ManualHeader(
+                      parentName: _parentLabel(parent.email),
+                      currentPage: _pageIndex + 1,
+                      totalPages: pages.length,
+                    ),
+                  ),
                   Expanded(
                     child: PageView.builder(
                       controller: _pageController,
@@ -64,39 +73,12 @@ class _ManualPageState extends State<ManualPage> {
                       itemBuilder: (context, index) {
                         final page = pages[index];
                         return Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    _iconFor(page.iconName),
-                                    size: 72,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                  const SizedBox(height: 18),
-                                  Text(
-                                    page.title,
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    page.body,
-                                    textAlign: TextAlign.center,
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
-                                  ),
-                                ],
-                              ),
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+                          child: Center(
+                            child: _ManualCard(
+                              icon: _iconFor(page.iconName),
+                              title: page.title,
+                              body: page.body,
                             ),
                           ),
                         );
@@ -111,18 +93,7 @@ class _ManualPageState extends State<ManualPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(pages.length, (index) {
                             final selected = index == _pageIndex;
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              width: selected ? 24 : 8,
-                              height: 8,
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.black26,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            );
+                            return _ManualProgressDot(selected: selected);
                           }),
                         ),
                         const SizedBox(height: 14),
@@ -164,4 +135,161 @@ class _ManualPageState extends State<ManualPage> {
       _ => Icons.menu_book,
     };
   }
+}
+
+class _ManualHeader extends StatelessWidget {
+  const _ManualHeader({
+    required this.parentName,
+    required this.currentPage,
+    required this.totalPages,
+  });
+
+  final String parentName;
+  final int currentPage;
+  final int totalPages;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.lavender,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.54)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.honey,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.menu_book_rounded, color: AppColors.ink),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome back, $parentName 👋',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Guide $currentPage of $totalPages',
+                  style: TextStyle(
+                    color: AppColors.ink.withValues(alpha: 0.64),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ManualCard extends StatelessWidget {
+  const _ManualCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 430),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.grape, AppColors.violet],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.grape.withValues(alpha: 0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(icon, size: 34, color: AppColors.honey),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              body,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.86),
+                    height: 1.35,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ManualProgressDot extends StatelessWidget {
+  const _ManualProgressDot({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: selected ? 28 : 9,
+      height: 9,
+      margin: const EdgeInsets.symmetric(horizontal: 3),
+      decoration: BoxDecoration(
+        color: selected ? AppColors.coral : AppColors.lilac,
+        borderRadius: BorderRadius.circular(999),
+      ),
+    );
+  }
+}
+
+String _parentLabel(String email) {
+  final name = email.split('@').first.trim();
+  if (name.isEmpty) return 'Parent';
+  return name[0].toUpperCase() + name.substring(1);
 }

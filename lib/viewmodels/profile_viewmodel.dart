@@ -122,7 +122,7 @@ class ProfileViewModel extends ChangeNotifier {
   }) {
     final nameError = Validators.requiredText(name, 'Child name');
     if (nameError != null) return nameError;
-    if (age < 1 || age > 4) return 'Age must be between 1 and 4.';
+    if (age < 3 || age > 8) return 'Age must be between 3 and 8.';
     return null;
   }
 

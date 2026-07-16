@@ -20,7 +20,13 @@ class LearnerDetailPage extends StatelessWidget {
       body: Column(
         children: [
           DecoratedBox(
-            decoration: const BoxDecoration(color: AppColors.ink),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.grape, AppColors.violet],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
             child: SafeArea(
               bottom: false,
               child: Padding(
@@ -152,6 +158,7 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Card(
+        color: AppColors.lavender,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
           child: Column(
@@ -186,7 +193,7 @@ String _initials(String value) {
 
 Color _avatarColor(String value) {
   final colors = [
-    AppColors.mint,
+    AppColors.lavender,
     const Color(0xFFFFE5A3),
     const Color(0xFFDCEBFF),
     const Color(0xFFF7D8CF),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'core/config/app_config.dart';
 import 'core/routing/app_router.dart';
 import 'core/routing/route_names.dart';
+import 'core/theme/app_scroll_behavior.dart';
 import 'core/theme/app_theme.dart';
 import 'repositories/admin_authorization_repository.dart';
 import 'repositories/admin_content_repository.dart';
@@ -300,6 +301,7 @@ class LittleLearnersApp extends StatelessWidget {
         title: 'Little Learners',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
+        scrollBehavior: const AppScrollBehavior(),
         initialRoute: RouteNames.splash,
         onGenerateRoute: AppRouter.generateRoute,
       ),

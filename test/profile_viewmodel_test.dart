@@ -18,7 +18,7 @@ void main() {
       final invalidAge = await viewModel.createProfile(
         parentId: 'parent-1',
         name: 'Aya',
-        age: 5,
+        age: 9,
         avatarAsset: 'koala-blue',
         leaderboardOptIn: false,
         displayPreference: 'alias',
@@ -36,7 +36,7 @@ void main() {
         final created = await viewModel.createProfile(
           parentId: 'parent-1',
           name: 'Child $index',
-          age: 2,
+          age: 4,
           avatarAsset: 'koala-blue',
           leaderboardOptIn: false,
           displayPreference: 'alias',

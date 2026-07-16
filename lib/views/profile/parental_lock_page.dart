@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/routing/app_router.dart';
-import '../../models/koala_guide_message.dart';
 import '../../viewmodels/parental_lock_viewmodel.dart';
-import '../../widgets/koala_guide.dart';
 
 class ParentalLockPage extends StatefulWidget {
   const ParentalLockPage({
@@ -41,46 +39,16 @@ class _ParentalLockPageState extends State<ParentalLockPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           children: [
-            const ContextualKoalaGuide(
-              trigger: KoalaGuideTrigger.parentalLock,
-              audience: KoalaGuideAudience.parent,
-              fallbackMessage:
-                  'Solve the quick parent challenge to change profiles.',
-            ),
+            const _ParentCheckHeader(),
             const SizedBox(height: 20),
-            Container(
-              width: 74,
-              height: 74,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.sky.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.lock_person_outlined,
-                color: AppColors.sky,
-                size: 34,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Solve the parent check',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'This keeps profile settings and reports in grown-up hands.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
             DecoratedBox(
               decoration: BoxDecoration(
-                color: AppColors.ink,
-                borderRadius: BorderRadius.circular(8),
+                gradient: const LinearGradient(
+                  colors: [AppColors.grape, AppColors.violet],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 28),
@@ -115,10 +83,10 @@ class _ParentalLockPageState extends State<ParentalLockPage> {
                 color: lock.errorMessage == null
                     ? AppColors.panel
                     : AppColors.coral.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: lock.errorMessage == null
-                      ? AppColors.line
+                      ? AppColors.lilac
                       : AppColors.coral,
                 ),
               ),
@@ -206,6 +174,60 @@ class _ParentalLockPageState extends State<ParentalLockPage> {
   }
 }
 
+class _ParentCheckHeader extends StatelessWidget {
+  const _ParentCheckHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.lavender,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.58)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.honey,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.lock_person_rounded,
+              color: AppColors.ink,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Solve the parent check',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'This keeps profile settings and reports in grown-up hands.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.68),
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _NumberPad extends StatelessWidget {
   const _NumberPad({
     required this.enabled,
@@ -282,13 +304,14 @@ class _KeyButton extends StatelessWidget {
     return FilledButton(
       onPressed: enabled ? onTap : null,
       style: FilledButton.styleFrom(
-        backgroundColor: isSubmit ? AppColors.ink : AppColors.panel,
+        backgroundColor: isSubmit ? AppColors.coral : AppColors.lavender,
         foregroundColor: foreground,
         disabledBackgroundColor: AppColors.line,
         disabledForegroundColor: AppColors.ink.withValues(alpha: 0.38),
         side: BorderSide(
-          color: isSubmit ? AppColors.ink : AppColors.line,
+          color: isSubmit ? AppColors.coral : AppColors.lilac,
         ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       child: icon == null
           ? Text(

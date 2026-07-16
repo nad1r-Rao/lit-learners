@@ -27,6 +27,9 @@ class AppPrimaryButton extends StatelessWidget {
           );
 
     return FilledButton(
+      style: FilledButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
       onPressed: onPressed,
       child: child,
     );

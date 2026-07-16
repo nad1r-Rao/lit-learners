@@ -120,20 +120,33 @@ class LeaderboardPanel extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         if (entries.isEmpty)
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'No opted-in leaderboard entries yet. Turn on leaderboard '
-                'sharing for a child profile, complete a level, and refresh.',
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.lavender,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: AppColors.lilac.withValues(alpha: 0.58),
               ),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.emoji_events_outlined, color: AppColors.violet),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No opted-in leaderboard entries yet. Turn on leaderboard '
+                    'sharing for a child profile, complete a level, and refresh.',
+                  ),
+                ),
+              ],
             ),
           )
         else ...[
           _Podium(entries: entries.take(3).toList()),
           const SizedBox(height: 16),
           Text(
-            'Rankings',
+            'All rankings',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
@@ -173,6 +186,12 @@ class _StageFilterChip extends StatelessWidget {
       child: ChoiceChip(
         label: Text(label),
         selected: selectedStage == stage,
+        selectedColor: AppColors.honey,
+        backgroundColor: AppColors.lavender,
+        labelStyle: TextStyle(
+          color: selectedStage == stage ? AppColors.coral : AppColors.ink,
+          fontWeight: FontWeight.w900,
+        ),
         onSelected: (_) => onSelected(stage),
       ),
     );
@@ -188,8 +207,19 @@ class _Podium extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.ink,
-        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [AppColors.grape, AppColors.violet],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grape.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
@@ -339,7 +369,20 @@ class _LeaderboardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.46)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grape.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
           Navigator.of(context).push(
@@ -348,7 +391,7 @@ class _LeaderboardRow extends StatelessWidget {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(18),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
@@ -429,7 +472,7 @@ String _initials(String value) {
 
 Color _avatarColor(String value) {
   final colors = [
-    AppColors.mint,
+    AppColors.lavender,
     const Color(0xFFFFE5A3),
     const Color(0xFFDCEBFF),
     const Color(0xFFF7D8CF),

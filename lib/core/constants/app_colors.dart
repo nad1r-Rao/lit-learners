@@ -13,6 +13,10 @@ class AppColors {
   static const lime = Color(0xFF78D936);
   static const sky = Color(0xFF3C91F4);
   static const plum = Color(0xFF8A63E8);
+  static const violet = Color(0xFF4D2DD4);
+  static const grape = Color(0xFF2B176F);
+  static const lavender = Color(0xFFF0ECFF);
+  static const lilac = Color(0xFFCBB8FF);
   static const honey = Color(0xFFFFC94A);
   static const mint = Color(0xFFDDF7E8);
   static const aqua = Color(0xFF29C7C2);
