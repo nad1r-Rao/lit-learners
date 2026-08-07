@@ -32,12 +32,15 @@ service cloud.firestore {
     match /parents/{parentId} {
       allow create: if isOwnParent(parentId)
         && request.resource.data.role == 'parent';
-      allow read: if isOwnParent(parentId);
+      // Admins read parent documents for the monitoring-only account list and
+      // the system statistics screen. They can never write them.
+      allow read: if isOwnParent(parentId) || isAdmin();
       allow update: if isOwnParent(parentId) && keepsRoleUnchanged();
       allow delete: if false;
 
       match /childProfiles/{childId} {
-        allow read, write: if isOwnParent(parentId);
+        allow read: if isOwnParent(parentId) || isAdmin();
+        allow write: if isOwnParent(parentId);
       }
 
       match /learningReminders/{reminderId} {
@@ -50,7 +53,21 @@ service cloud.firestore {
     }
 
     match /childProgress/{childId}/levelProgress/{levelId} {
-      allow read, write: if ownsChildProfile(childId);
+      allow read: if ownsChildProfile(childId) || isAdmin();
+      allow write: if ownsChildProfile(childId);
+    }
+
+    // Collection-group reads for the admin statistics screen.
+    //
+    // Firestore evaluates collection-group queries against these wildcard
+    // matches rather than the nested paths above, so the admin aggregation
+    // queries need them declared explicitly. Read-only, admin-only.
+    match /{path=**}/childProfiles/{childId} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/levelProgress/{levelId} {
+      allow read: if isAdmin();
     }
 
     match /learningModules/{moduleId} {
