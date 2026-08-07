@@ -14,11 +14,11 @@ import '../../widgets/koala_guide.dart';
 
 class QuizPage extends StatefulWidget {
   const QuizPage({
-    required this.levelId,
+    required this.args,
     super.key,
   });
 
-  final String levelId;
+  final QuizArgs args;
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -30,7 +30,8 @@ class _QuizPageState extends State<QuizPage> {
   @override
   void initState() {
     super.initState();
-    _levelFuture = context.read<LearningViewModel>().levelById(widget.levelId);
+    _levelFuture =
+        context.read<LearningViewModel>().levelById(widget.args.levelId);
   }
 
   @override
@@ -54,7 +55,10 @@ class _QuizPageState extends State<QuizPage> {
 
         return ChangeNotifierProvider(
           create: (_) => QuizViewModel(level),
-          child: _QuizBody(level: level),
+          child: _QuizBody(
+            level: level,
+            tracingScore: widget.args.tracingScore,
+          ),
         );
       },
     );
@@ -62,9 +66,13 @@ class _QuizPageState extends State<QuizPage> {
 }
 
 class _QuizBody extends StatelessWidget {
-  const _QuizBody({required this.level});
+  const _QuizBody({
+    required this.level,
+    this.tracingScore,
+  });
 
   final LearningLevel level;
+  final int? tracingScore;
 
   @override
   Widget build(BuildContext context) {
@@ -82,9 +90,22 @@ class _QuizBody extends StatelessWidget {
               value: (quiz.questionIndex + 1) / quiz.totalQuestions,
             ),
             const SizedBox(height: 16),
-            Text(
-              'Question ${quiz.questionIndex + 1} of ${quiz.totalQuestions}',
-              style: Theme.of(context).textTheme.labelLarge,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Question ${quiz.questionIndex + 1} of '
+                    '${quiz.totalQuestions}',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ),
+                if (tracingScore != null)
+                  Chip(
+                    avatar: const Icon(Icons.gesture, size: 16),
+                    label: Text('Tracing $tracingScore%'),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             ContextualKoalaGuide(
@@ -216,14 +237,18 @@ class _QuizBody extends StatelessWidget {
     final child = context.read<ActiveChildSession>().activeChild;
     if (child == null) return;
 
-    if (!quiz.passed) {
+    final score = QuizViewModel.combineWithTracing(
+      quizPercent: quiz.scorePercent,
+      tracingScore: tracingScore,
+    );
+    if (score < level.passingScore) {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
             title: const Text('Try again'),
             content: Text(
-              'Score: ${quiz.scorePercent}%. You need ${level.passingScore}% '
+              'Score: $score%. You need ${level.passingScore}% '
               'to pass this level.',
             ),
             actions: [
@@ -244,7 +269,7 @@ class _QuizBody extends StatelessWidget {
     final progress = await context.read<LearningViewModel>().completeLevel(
           child.id,
           level,
-          score: quiz.scorePercent,
+          score: score,
         );
     if (!context.mounted) return;
 
@@ -254,7 +279,7 @@ class _QuizBody extends StatelessWidget {
         moduleId: level.moduleId,
         levelTitle: level.title,
         starsEarned: progress.starsEarned,
-        score: quiz.scorePercent,
+        score: score,
       ),
     );
   }

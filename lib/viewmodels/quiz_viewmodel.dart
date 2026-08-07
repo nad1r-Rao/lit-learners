@@ -6,6 +6,19 @@ import '../models/quiz_question.dart';
 class QuizViewModel extends ChangeNotifier {
   QuizViewModel(this.level);
 
+  /// Tracing levels are graded twice: once on how closely the child followed
+  /// the dots, once on the quiz that follows. The level mark is the average, so
+  /// neither half can be skipped and the tracing work is not thrown away.
+  ///
+  /// Levels without a tracing stage keep their quiz percentage unchanged.
+  static int combineWithTracing({
+    required int quizPercent,
+    int? tracingScore,
+  }) {
+    if (tracingScore == null) return quizPercent;
+    return ((tracingScore + quizPercent) / 2).round();
+  }
+
   final LearningLevel level;
   int _questionIndex = 0;
   int _correctCount = 0;

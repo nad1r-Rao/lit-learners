@@ -38,6 +38,19 @@ class CelebrationArgs {
   final int? score;
 }
 
+class QuizArgs {
+  const QuizArgs({
+    required this.levelId,
+    this.tracingScore,
+  });
+
+  final String levelId;
+
+  /// Accuracy already earned on a tracing level, carried into the quiz so the
+  /// final mark reflects both halves of the level instead of only the quiz.
+  final int? tracingScore;
+}
+
 class VideoPlayerArgs {
   const VideoPlayerArgs({
     required this.levelId,
@@ -97,7 +110,7 @@ class AppRouter {
             levelId: settings.arguments! as String,
           ),
         RouteNames.quiz => QuizPage(
-            levelId: settings.arguments! as String,
+            args: settings.arguments! as QuizArgs,
           ),
         RouteNames.celebration => CelebrationPage(
             args: settings.arguments! as CelebrationArgs,

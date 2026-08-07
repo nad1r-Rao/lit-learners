@@ -339,7 +339,11 @@ class _ProgressRow extends StatelessWidget {
                 ),
                 Text(report.moduleTitle),
                 if (progress.score != null)
-                  Text('Quiz score ${progress.score}%'),
+                  Text(
+                    report.levelType == LevelType.tracing
+                        ? 'Tracing accuracy ${progress.score}%'
+                        : 'Quiz score ${progress.score}%',
+                  ),
                 if (watchedText != null) Text(watchedText),
                 Text(
                   _formatDate(progress.updatedAt),
@@ -361,6 +365,7 @@ class _ProgressRow extends StatelessWidget {
       LevelType.matching => Icons.category,
       LevelType.story => Icons.menu_book,
       LevelType.drawing => Icons.brush,
+      LevelType.tracing => Icons.gesture,
       LevelType.flashcards => Icons.style,
     };
   }

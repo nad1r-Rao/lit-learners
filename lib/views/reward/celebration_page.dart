@@ -49,7 +49,7 @@ class CelebrationPage extends StatelessWidget {
                     StarRating(count: args.starsEarned),
                     if (args.score != null) ...[
                       const SizedBox(height: 8),
-                      Text('Quiz score: ${args.score}%'),
+                      Text('Score: ${args.score}%'),
                     ],
                   ],
                 ),

@@ -1321,6 +1321,7 @@ IconData _moduleIcon(LevelProgressReport report) {
     LevelType.counting => Icons.onetwothree_outlined,
     LevelType.story => Icons.menu_book_outlined,
     LevelType.drawing => Icons.draw_outlined,
+    LevelType.tracing => Icons.gesture_outlined,
     LevelType.matching => Icons.extension_outlined,
     LevelType.flashcards => Icons.style_outlined,
   };

@@ -4,6 +4,52 @@ import 'package:little_learners/models/quiz_question.dart';
 import 'package:little_learners/viewmodels/quiz_viewmodel.dart';
 
 void main() {
+  group('QuizViewModel.combineWithTracing', () {
+    test('a level without tracing keeps its quiz percentage', () {
+      expect(
+        QuizViewModel.combineWithTracing(quizPercent: 80),
+        80,
+      );
+    });
+
+    test('a tracing level averages both halves', () {
+      expect(
+        QuizViewModel.combineWithTracing(quizPercent: 100, tracingScore: 60),
+        80,
+      );
+      expect(
+        QuizViewModel.combineWithTracing(quizPercent: 50, tracingScore: 50),
+        50,
+      );
+    });
+
+    test('a perfect quiz cannot hide sloppy tracing', () {
+      final combined = QuizViewModel.combineWithTracing(
+        quizPercent: 100,
+        tracingScore: 20,
+      );
+
+      expect(combined, 60);
+      expect(combined, lessThan(100));
+    });
+
+    test('perfect tracing cannot hide a failed quiz', () {
+      final combined = QuizViewModel.combineWithTracing(
+        quizPercent: 0,
+        tracingScore: 100,
+      );
+
+      expect(combined, 50);
+    });
+
+    test('an odd total rounds to the nearest whole mark', () {
+      expect(
+        QuizViewModel.combineWithTracing(quizPercent: 70, tracingScore: 75),
+        73,
+      );
+    });
+  });
+
   test('QuizViewModel scores correct answers and marks passing result', () {
     const level = LearningLevel(
       id: 'level-1',

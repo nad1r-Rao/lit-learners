@@ -8,6 +8,7 @@ enum LevelType {
   matching,
   story,
   drawing,
+  tracing,
   video,
 }
 

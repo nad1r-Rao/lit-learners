@@ -5,14 +5,16 @@ import '../../core/routing/app_router.dart';
 import '../../core/routing/route_names.dart';
 import '../../core/utils/age_stage_helper.dart';
 import '../../core/utils/learning_text_direction.dart';
+import '../../core/utils/module_visuals.dart';
 import '../../models/koala_guide_message.dart';
 import '../../models/learning_level.dart';
-import '../../services/audio/koala_audio_player.dart';
 import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../viewmodels/level_activity_viewmodel.dart';
 import '../../widgets/app_primary_button.dart';
 import '../../widgets/koala_guide.dart';
+import 'canvas_level_view.dart';
+import 'widgets/activity_chrome.dart';
 
 class LevelPlayerPage extends StatefulWidget {
   const LevelPlayerPage({
@@ -80,6 +82,24 @@ class _LevelBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = context.watch<ActiveChildSession>().activeChild;
     final activity = context.watch<LevelActivityViewModel>();
+    final canFinish = child != null && activity.isActivityComplete;
+
+    // Canvas activities take over the whole body: they need the height, and a
+    // drawing surface inside a scrolling list would fight the scroll gesture.
+    if (level.type == LevelType.drawing) {
+      return DrawingLevelView(
+        level: level,
+        onFinish: canFinish ? () => _complete(context, child.id) : null,
+      );
+    }
+    if (level.type == LevelType.tracing) {
+      return TracingLevelView(
+        level: level,
+        onFinish:
+            canFinish ? () => _finishTracing(context, child.id, activity) : null,
+      );
+    }
+
     final item = activity.currentItem;
     final textDirection = LearningTextDirection.forLevel(level);
     final learningTextStyle = LearningTextDirection.styleFor(
@@ -113,7 +133,10 @@ class _LevelBody extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    _ActivityBadge(text: item.displayText),
+                    ActivityBadge(
+                      text: item.displayText,
+                      accent: ModuleVisuals.colorForModuleId(level.moduleId),
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -145,7 +168,7 @@ class _LevelBody extends StatelessWidget {
                         ],
                       ),
                     ),
-                    _ContentAudioButton(audioCueKey: item.audioCueKey),
+                    ContentAudioButton(audioCueKey: item.audioCueKey),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -196,21 +219,59 @@ class _LevelBody extends StatelessWidget {
         AppPrimaryButton(
           icon: Icons.check_circle,
           label: level.quizQuestions.isEmpty ? 'Earn reward' : 'Start quiz',
-          onPressed: child == null || !activity.isActivityComplete
-              ? null
-              : () => _complete(context, child.id),
+          onPressed: canFinish ? () => _complete(context, child.id) : null,
         ),
       ],
     );
   }
 
-  Future<void> _complete(BuildContext context, String childId) async {
+  /// Tracing levels are graded, so they follow the same rule as a quiz: below
+  /// the passing score the level is retried instead of rewarded.
+  Future<void> _finishTracing(
+    BuildContext context,
+    String childId,
+    LevelActivityViewModel activity,
+  ) async {
+    final score = activity.traceLevelScore;
+    if (score < level.passingScore) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Try again'),
+            content: Text(
+              'Tracing score: $score%. You need ${level.passingScore}% to '
+              'pass this level.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Keep practicing'),
+              ),
+            ],
+          );
+        },
+      );
+      if (context.mounted) activity.restart();
+      return;
+    }
+
+    await _complete(context, childId, score: score);
+  }
+
+  Future<void> _complete(
+    BuildContext context,
+    String childId, {
+    int? score,
+  }) async {
     if (level.quizQuestions.isNotEmpty) {
       final child = context.read<ActiveChildSession>().activeChild;
       if (child != null && AgeStageHelper.shouldShowQuiz(child.age)) {
         Navigator.of(context).pushReplacementNamed(
           RouteNames.quiz,
-          arguments: level.id,
+          // Any tracing accuracy earned so far rides along, so the quiz can
+          // average the two rather than replacing the mark.
+          arguments: QuizArgs(levelId: level.id, tracingScore: score),
         );
         return;
       }
@@ -219,6 +280,7 @@ class _LevelBody extends StatelessWidget {
     final progress = await context.read<LearningViewModel>().completeLevel(
           childId,
           level,
+          score: score,
         );
     if (!context.mounted) return;
     Navigator.of(context).pushReplacementNamed(
@@ -227,101 +289,7 @@ class _LevelBody extends StatelessWidget {
         moduleId: level.moduleId,
         levelTitle: level.title,
         starsEarned: progress.starsEarned,
-      ),
-    );
-  }
-}
-
-class _ContentAudioButton extends StatefulWidget {
-  const _ContentAudioButton({required this.audioCueKey});
-
-  static const learningAssetBasePath = 'audio/learning';
-
-  final String? audioCueKey;
-
-  @override
-  State<_ContentAudioButton> createState() => _ContentAudioButtonState();
-}
-
-class _ContentAudioButtonState extends State<_ContentAudioButton> {
-  bool _isPlaying = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final cueKey = widget.audioCueKey?.trim();
-    final player = _maybeAudioPlayer(context);
-    if (cueKey == null || cueKey.isEmpty || player == null) {
-      return const SizedBox.shrink();
-    }
-
-    return IconButton(
-      tooltip: 'Play card audio',
-      onPressed: _isPlaying ? null : () => _playCue(player, cueKey),
-      iconSize: 20,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-      icon: Icon(
-        _isPlaying ? Icons.volume_up : Icons.volume_up_outlined,
-      ),
-    );
-  }
-
-  Future<void> _playCue(KoalaAudioPlayer player, String cueKey) async {
-    setState(() => _isPlaying = true);
-    try {
-      await player.playCue(
-        cueKey,
-        assetBasePath: _ContentAudioButton.learningAssetBasePath,
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isPlaying = false);
-      }
-    }
-  }
-
-  KoalaAudioPlayer? _maybeAudioPlayer(BuildContext context) {
-    try {
-      return context.read<KoalaAudioPlayer>();
-    } on ProviderNotFoundException {
-      return null;
-    }
-  }
-}
-
-class _ActivityBadge extends StatelessWidget {
-  const _ActivityBadge({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final textDirection = LearningTextDirection.forText(text);
-    final badgeStyle = LearningTextDirection.styleForText(
-      Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
-      text,
-    );
-
-    return SizedBox(
-      width: 82,
-      height: 82,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Directionality(
-            textDirection: textDirection,
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              style: badgeStyle,
-            ),
-          ),
-        ),
+        score: score,
       ),
     );
   }
@@ -338,7 +306,6 @@ class _ActivityInteraction extends StatelessWidget {
       LevelType.counting => const _CountingInteraction(),
       LevelType.matching => const _MatchingInteraction(),
       LevelType.story => const _StoryInteraction(),
-      LevelType.drawing => const _DrawingInteraction(),
       _ => const _FlashcardInteraction(),
     };
   }
@@ -426,77 +393,6 @@ class _StoryInteraction extends StatelessWidget {
       label: Text(
         activity.currentItemComplete ? 'Page told' : 'I told this page',
       ),
-    );
-  }
-}
-
-class _DrawingInteraction extends StatelessWidget {
-  const _DrawingInteraction();
-
-  static const _colorMap = {
-    'Red': Color(0xFFF16A5B),
-    'Blue': Color(0xFF2D7DD2),
-    'Yellow': Color(0xFFF2B84B),
-    'Green': Color(0xFF1E9B72),
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final activity = context.watch<LevelActivityViewModel>();
-    final selectedColor = _colorMap[activity.selectedDrawingColor] ??
-        Theme.of(context).colorScheme.primary;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: 112,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: selectedColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: selectedColor.withValues(alpha: 0.5),
-              ),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.brush,
-                color: selectedColor,
-                size: 44,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final colorName in activity.drawingColorOptions)
-              ChoiceChip(
-                avatar: CircleAvatar(
-                  backgroundColor: _colorMap[colorName],
-                ),
-                label: Text(colorName),
-                selected: activity.selectedDrawingColor == colorName,
-                onSelected: activity.currentItemComplete
-                    ? null
-                    : (_) => activity.selectDrawingColor(colorName),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed:
-              activity.currentItemComplete ? null : activity.markCurrentLearned,
-          icon: const Icon(Icons.palette),
-          label: Text(
-            activity.currentItemComplete ? 'Finished' : 'I finished it',
-          ),
-        ),
-      ],
     );
   }
 }

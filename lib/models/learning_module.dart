@@ -5,6 +5,7 @@ enum ModuleCategory {
   logic,
   story,
   drawing,
+  tracing,
   video,
 }
 
