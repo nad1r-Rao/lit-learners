@@ -163,8 +163,13 @@ class _ParentalLockPageState extends State<ParentalLockPage> {
     if (!context.mounted) return;
 
     if (passed) {
+      final successRoute = widget.args.successRoute;
+      if (successRoute == null) {
+        Navigator.of(context).pop(true);
+        return;
+      }
       Navigator.of(context).pushReplacementNamed(
-        widget.args.successRoute,
+        successRoute,
         arguments: widget.args.successArguments,
       );
       return;

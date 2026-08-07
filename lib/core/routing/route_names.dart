@@ -16,6 +16,7 @@ class RouteNames {
   static const parentReminders = '/parent/reminders';
   static const leaderboard = '/parent/leaderboard';
   static const parentalLock = '/parental-lock';
+  static const parentMarking = '/parent/marking';
   static const childHome = '/child/home';
   static const moduleLevels = '/child/module/levels';
   static const levelPlayer = '/child/level/player';
