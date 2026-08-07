@@ -340,9 +340,14 @@ class _ProgressRow extends StatelessWidget {
                 Text(report.moduleTitle),
                 if (progress.score != null)
                   Text(
-                    report.levelType == LevelType.tracing
-                        ? 'Tracing accuracy ${progress.score}%'
-                        : 'Quiz score ${progress.score}%',
+                    switch (report.levelType) {
+                      // Canvas work carries the mark a grown-up gave it, not
+                      // anything the app worked out on its own.
+                      LevelType.tracing ||
+                      LevelType.drawing =>
+                        'Your mark ${progress.score}%',
+                      _ => 'Quiz score ${progress.score}%',
+                    },
                   ),
                 if (watchedText != null) Text(watchedText),
                 Text(

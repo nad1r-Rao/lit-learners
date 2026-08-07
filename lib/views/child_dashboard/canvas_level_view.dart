@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/utils/learning_text_direction.dart';
 import '../../core/utils/module_visuals.dart';
+import '../../models/canvas_work.dart';
 import '../../models/drawing_stroke.dart';
 import '../../models/learning_level.dart';
-import '../../models/trace_score.dart';
 import '../../services/tracing/trace_glyph.dart';
-import '../../services/tracing/trace_scorer.dart';
 import '../../viewmodels/drawing_canvas_controller.dart';
 import '../../viewmodels/level_activity_viewmodel.dart';
 import '../../widgets/app_primary_button.dart';
@@ -16,6 +14,14 @@ import '../../widgets/drawing/drawing_canvas.dart';
 import '../../widgets/drawing/drawing_toolbar.dart';
 import '../../widgets/tracing/trace_guide_painter.dart';
 import 'widgets/activity_chrome.dart';
+
+/// Hands the finished pages to whoever is hosting the activity, which passes
+/// them on to a grown-up to mark.
+typedef CanvasWorkSubmitted = void Function(List<CanvasWork> work);
+
+/// Wording the child sees on the button that ends a canvas level. Canvas work
+/// is marked by a parent, so the level does not finish here — it goes to them.
+const _handOverLabel = 'Show a grown-up';
 
 /// Free drawing: one page that the child keeps adding to as the prompts move
 /// on, because drawing levels are written as steps that build a single picture
@@ -28,7 +34,7 @@ class DrawingLevelView extends StatefulWidget {
   });
 
   final LearningLevel level;
-  final VoidCallback? onFinish;
+  final CanvasWorkSubmitted? onFinish;
 
   @override
   State<DrawingLevelView> createState() => _DrawingLevelViewState();
@@ -38,6 +44,8 @@ class _DrawingLevelViewState extends State<DrawingLevelView> {
   final DrawingCanvasController _controller = DrawingCanvasController();
   late final LevelActivityViewModel _activity;
   int _itemIndex = 0;
+  int _attempt = 0;
+  Size _canvasSize = Size.zero;
 
   /// Ink count when the current prompt started, so each step needs its own
   /// fresh marks rather than crediting what was already on the page.
@@ -49,6 +57,7 @@ class _DrawingLevelViewState extends State<DrawingLevelView> {
     super.initState();
     _activity = context.read<LevelActivityViewModel>();
     _itemIndex = _activity.itemIndex;
+    _attempt = _activity.attempt;
     _activity.addListener(_onActivityChanged);
     _controller.addListener(_onCanvasChanged);
   }
@@ -63,6 +72,20 @@ class _DrawingLevelViewState extends State<DrawingLevelView> {
   }
 
   void _onActivityChanged() {
+    if (!mounted) return;
+
+    if (_activity.attempt != _attempt) {
+      // A parent sent the level back for more practice: a blank page again.
+      _controller.clear();
+      setState(() {
+        _attempt = _activity.attempt;
+        _itemIndex = _activity.itemIndex;
+        _inkBaseline = 0;
+        _hasNewInk = false;
+      });
+      return;
+    }
+
     if (_activity.itemIndex == _itemIndex) return;
 
     setState(() {
@@ -79,6 +102,17 @@ class _DrawingLevelViewState extends State<DrawingLevelView> {
     setState(() => _hasNewInk = hasNewInk);
   }
 
+  void _finish() {
+    widget.onFinish?.call([
+      CanvasWork(
+        title: widget.level.title,
+        prompt: widget.level.subtitle,
+        canvasSize: _canvasSize,
+        strokes: _controller.strokes.map((stroke) => stroke.copy()).toList(),
+      ),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final activity = context.watch<LevelActivityViewModel>();
@@ -90,7 +124,19 @@ class _DrawingLevelViewState extends State<DrawingLevelView> {
         children: [
           CanvasLevelHeader(level: widget.level, accent: accent),
           const SizedBox(height: 10),
-          Expanded(child: DrawingCanvas(controller: _controller)),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Remembered so the marking screen can replay the page at the
+                // size it was actually drawn at.
+                _canvasSize = Size(
+                  constraints.maxWidth,
+                  constraints.maxHeight,
+                );
+                return DrawingCanvas(controller: _controller);
+              },
+            ),
+          ),
           const SizedBox(height: 10),
           DrawingToolbar(controller: _controller),
           const SizedBox(height: 10),
@@ -131,15 +177,17 @@ class _DrawingLevelViewState extends State<DrawingLevelView> {
     }
 
     return AppPrimaryButton(
-      icon: Icons.check_circle,
-      label: widget.level.quizQuestions.isEmpty ? 'Earn reward' : 'Start quiz',
-      onPressed: widget.onFinish,
+      icon: Icons.how_to_reg,
+      label: _handOverLabel,
+      onPressed: widget.onFinish == null ? null : _finish,
     );
   }
 }
 
-/// Letter and number tracing: a dotted glyph on the canvas, checked for how
-/// closely the child followed it.
+/// Letter and number tracing: a dotted glyph to follow, one page per letter.
+///
+/// Nothing here grades the child. Every page is kept as it was drawn and handed
+/// to a grown-up at the end, who marks the level behind the parental lock.
 class TracingLevelView extends StatefulWidget {
   const TracingLevelView({
     required this.level,
@@ -148,7 +196,7 @@ class TracingLevelView extends StatefulWidget {
   });
 
   final LearningLevel level;
-  final VoidCallback? onFinish;
+  final CanvasWorkSubmitted? onFinish;
 
   @override
   State<TracingLevelView> createState() => _TracingLevelViewState();
@@ -166,18 +214,24 @@ class _TracingLevelViewState extends State<TracingLevelView> {
   );
   late final LevelActivityViewModel _activity;
 
+  /// Finished pages by card index, kept so the parent sees every letter and not
+  /// just the last one.
+  final Map<int, CanvasWork> _captured = <int, CanvasWork>{};
+
   TraceGlyphLayout? _layout;
   Size _canvasSize = Size.zero;
   Size? _requestedSize;
   String? _requestedGlyph;
   int _itemIndex = 0;
-  bool _checking = false;
+  int _attempt = 0;
+  bool _hasInk = false;
 
   @override
   void initState() {
     super.initState();
     _activity = context.read<LevelActivityViewModel>();
     _itemIndex = _activity.itemIndex;
+    _attempt = _activity.attempt;
     _activity.addListener(_onActivityChanged);
     _controller.addListener(_onCanvasChanged);
   }
@@ -192,12 +246,30 @@ class _TracingLevelViewState extends State<TracingLevelView> {
   }
 
   void _onActivityChanged() {
-    if (_activity.itemIndex == _itemIndex || !mounted) return;
+    if (!mounted) return;
 
-    // Every letter gets a clean page and its own fitted guide.
-    _itemIndex = _activity.itemIndex;
+    if (_activity.attempt != _attempt) {
+      // A parent sent the level back for more practice: every page goes.
+      _attempt = _activity.attempt;
+      _captured.clear();
+      _resetPage(_activity.itemIndex);
+      return;
+    }
+
+    if (_activity.itemIndex == _itemIndex) return;
+
+    // Keep the page that was just finished before wiping the canvas for the
+    // next letter.
+    final finished = _captureCurrent();
+    if (finished != null) _captured[_itemIndex] = finished;
+    _resetPage(_activity.itemIndex);
+  }
+
+  void _resetPage(int itemIndex) {
     _controller.clear();
     setState(() {
+      _itemIndex = itemIndex;
+      _hasInk = false;
       _layout = null;
       _requestedGlyph = null;
       _requestedSize = null;
@@ -205,12 +277,37 @@ class _TracingLevelViewState extends State<TracingLevelView> {
   }
 
   void _onCanvasChanged() {
-    // Drawing again means the child is retrying, so drop the stale verdict.
-    if (!_controller.isDrawing) return;
-    if (_activity.lastTraceScore == null) return;
-    if (_activity.currentItemComplete) return;
+    if (!mounted || _controller.hasInk == _hasInk) return;
 
-    _activity.clearTraceFeedback();
+    setState(() => _hasInk = _controller.hasInk);
+  }
+
+  CanvasWork? _captureCurrent() {
+    final layout = _layout;
+    if (layout == null || _canvasSize.isEmpty) return null;
+
+    final item = widget.level.contentItems[_itemIndex];
+    return CanvasWork(
+      title: item.title,
+      prompt: item.prompt,
+      canvasSize: _canvasSize,
+      strokes: _controller.strokes.map((stroke) => stroke.copy()).toList(),
+      guide: layout,
+    );
+  }
+
+  void _finish() {
+    final work = <CanvasWork>[];
+    for (var index = 0; index < widget.level.contentItems.length; index++) {
+      final page = index == _itemIndex ? _captureCurrent() : _captured[index];
+      if (page != null) work.add(page);
+    }
+    widget.onFinish?.call(work);
+  }
+
+  void _startOver() {
+    _controller.clear();
+    setState(() => _hasInk = false);
   }
 
   @override
@@ -218,7 +315,6 @@ class _TracingLevelViewState extends State<TracingLevelView> {
     final activity = context.watch<LevelActivityViewModel>();
     final glyph = activity.currentItem.displayText;
     final accent = ModuleVisuals.colorForModuleId(widget.level.moduleId);
-    final result = activity.lastTraceScore;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -239,11 +335,9 @@ class _TracingLevelViewState extends State<TracingLevelView> {
                   children: [
                     DrawingCanvas(
                       controller: _controller,
-                      enabled: !_checking,
                       background: TraceGuidePainter(
                         layout: _layout,
                         accent: accent,
-                        showGhost: !activity.currentItemComplete,
                       ),
                     ),
                     if (_layout == null)
@@ -253,15 +347,6 @@ class _TracingLevelViewState extends State<TracingLevelView> {
               },
             ),
           ),
-          if (result != null) ...[
-            const SizedBox(height: 10),
-            _TraceResultBanner(
-              score: result,
-              passingScore: widget.level.passingScore,
-              attemptsLeft: LevelActivityViewModel.maxTraceAttempts -
-                  activity.traceAttempts,
-            ),
-          ],
           const SizedBox(height: 10),
           DrawingToolbar(controller: _controller),
           const SizedBox(height: 10),
@@ -295,46 +380,38 @@ class _TracingLevelViewState extends State<TracingLevelView> {
     });
   }
 
-  Future<void> _check() async {
-    final layout = _layout;
-    if (layout == null || _checking) return;
-
-    setState(() => _checking = true);
-    final score = await TraceScorer.evaluate(
-      layout: layout,
-      canvasSize: _canvasSize,
-      strokes: _controller.strokes,
-    );
-    if (!mounted) return;
-
-    setState(() => _checking = false);
-    _activity.recordTraceAttempt(score);
-  }
-
-  void _startOver() {
-    _controller.clear();
-    _activity.clearTraceFeedback();
-  }
-
   Widget _footer(LevelActivityViewModel activity) {
     if (!activity.currentItemComplete) {
-      return Row(
+      return Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _checking ? null : _startOver,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Start over'),
+          if (!_hasInk)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Trace along the dots, then tap done.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            flex: 2,
-            child: AppPrimaryButton(
-              icon: _checking ? Icons.hourglass_top : Icons.fact_check,
-              label: _checking ? 'Checking…' : 'Check my tracing',
-              onPressed: _checking ? null : _check,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _hasInk ? _startOver : null,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Start over'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: AppPrimaryButton(
+                  icon: Icons.check,
+                  label: 'I finished this letter',
+                  onPressed: _hasInk ? activity.markCurrentLearned : null,
+                ),
+              ),
+            ],
           ),
         ],
       );
@@ -344,7 +421,7 @@ class _TracingLevelViewState extends State<TracingLevelView> {
       children: [
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: _checking ? null : _startOver,
+            onPressed: _startOver,
             icon: const Icon(Icons.gesture, size: 18),
             label: const Text('Trace again'),
           ),
@@ -354,11 +431,9 @@ class _TracingLevelViewState extends State<TracingLevelView> {
           flex: 2,
           child: activity.isLastItem
               ? AppPrimaryButton(
-                  icon: Icons.check_circle,
-                  label: widget.level.quizQuestions.isEmpty
-                      ? 'Earn reward'
-                      : 'Start quiz',
-                  onPressed: widget.onFinish,
+                  icon: Icons.how_to_reg,
+                  label: _handOverLabel,
+                  onPressed: widget.onFinish == null ? null : _finish,
                 )
               : AppPrimaryButton(
                   icon: Icons.arrow_forward,
@@ -465,83 +540,6 @@ class CanvasLevelHeader extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _TraceResultBanner extends StatelessWidget {
-  const _TraceResultBanner({
-    required this.score,
-    required this.passingScore,
-    required this.attemptsLeft,
-  });
-
-  final TraceScore score;
-  final int passingScore;
-  final int attemptsLeft;
-
-  @override
-  Widget build(BuildContext context) {
-    final passed = score.passed(passingScore);
-    final accent = !score.hasInk
-        ? AppColors.sky
-        : passed
-            ? AppColors.leaf
-            : AppColors.honey;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Color.alphaBlend(accent.withValues(alpha: 0.12), AppColors.panel),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withValues(alpha: 0.45)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
-        children: [
-          Icon(
-            !score.hasInk
-                ? Icons.info_outline
-                : passed
-                    ? Icons.emoji_events
-                    : Icons.favorite,
-            color: accent,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  score.feedback(passingScore),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                if (score.hasInk) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Traced ${(score.coverage * 100).round()}% of the letter · '
-                    '${(score.precision * 100).round()}% on the dots'
-                    '${passed || attemptsLeft <= 0 ? '' : ' · $attemptsLeft '
-                        'tr${attemptsLeft == 1 ? 'y' : 'ies'} left'}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (score.hasInk) ...[
-            const SizedBox(width: 10),
-            Text(
-              '${score.score}%',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: accent,
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-          ],
-        ],
       ),
     );
   }

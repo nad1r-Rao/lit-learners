@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:little_learners/core/theme/app_theme.dart';
+import 'package:little_learners/models/canvas_work.dart';
 import 'package:little_learners/models/content_item.dart';
 import 'package:little_learners/models/learning_level.dart';
 import 'package:little_learners/viewmodels/level_activity_viewmodel.dart';
 import 'package:little_learners/views/child_dashboard/canvas_level_view.dart';
-import 'package:little_learners/widgets/drawing/drawing_canvas.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -14,7 +14,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_host(DrawingLevelView(
         level: _drawingLevel(),
-        onFinish: () {},
+        onFinish: (_) {},
       )));
 
       expect(find.text('Draw on the page to finish this step.'), findsOneWidget);
@@ -34,7 +34,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_host(DrawingLevelView(
         level: _drawingLevel(),
-        onFinish: () {},
+        onFinish: (_) {},
       )));
 
       await _scribble(tester);
@@ -57,7 +57,7 @@ void main() {
     testWidgets('every drawing tool is offered', (tester) async {
       await tester.pumpWidget(_host(DrawingLevelView(
         level: _drawingLevel(),
-        onFinish: () {},
+        onFinish: (_) {},
       )));
 
       expect(find.text('Pen'), findsOneWidget);
@@ -69,66 +69,81 @@ void main() {
   });
 
   group('TracingLevelView', () {
-    testWidgets('shows the letter, the guide and a check action',
+    testWidgets('shows the letter and its guide, and waits for a trace',
         (tester) async {
       await _pumpTracing(tester);
 
       expect(find.text('A'), findsOneWidget);
       expect(find.text('Trace the letter A.'), findsOneWidget);
-      expect(find.text('Check my tracing'), findsOneWidget);
+      expect(find.text('Trace along the dots, then tap done.'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
       // The eraser is offered, the highlighter is not: it would not help here.
       expect(find.text('Eraser'), findsOneWidget);
       expect(find.text('Marker'), findsNothing);
+
+      // Nothing on screen grades the child: that is the parent's job later.
+      expect(find.textContaining('%'), findsNothing);
+      expect(_button(tester, 'I finished this letter').onPressed, isNull);
     });
 
-    testWidgets('checking a blank canvas asks the child to draw first',
+    testWidgets('a traced letter can be finished and unlocks the next one',
         (tester) async {
       await _pumpTracing(tester);
 
-      await tester.tap(find.text('Check my tracing'));
+      await _scribble(tester);
+
+      expect(_button(tester, 'I finished this letter').onPressed, isNotNull);
+
+      await tester.tap(find.text('I finished this letter'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Next letter'), findsOneWidget);
+      expect(find.text('I finished this letter'), findsNothing);
+    });
+
+    testWidgets('starting over clears the page and locks done again',
+        (tester) async {
+      await _pumpTracing(tester);
+      await _scribble(tester);
+
+      await tester.tap(find.text('Start over'));
+      await tester.pumpAndSettle();
+
+      expect(_button(tester, 'I finished this letter').onPressed, isNull);
+    });
+
+    testWidgets('every letter is handed over for a grown-up to mark',
+        (tester) async {
+      List<CanvasWork>? submitted;
+      await _pumpTracing(tester, onFinish: (work) => submitted = work);
+
+      await _scribble(tester);
+      await tester.tap(find.text('I finished this letter'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next letter'));
+      // One frame to schedule the next glyph's fitting, then real time for the
+      // rasterising it does, before the canvas can settle.
       await tester.pump();
       await tester.runAsync(() => Future<void>.delayed(_settle));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Draw on the dots first, then check your work.'),
-        findsOneWidget,
-      );
-      expect(find.text('Check my tracing'), findsOneWidget);
-    });
+      expect(find.text('B'), findsOneWidget);
 
-    testWidgets('a traced letter is graded and unlocks the next one',
-        (tester) async {
-      await _pumpTracing(tester);
-
-      final canvas = tester.getRect(find.byType(DrawingCanvas));
-      // Where TraceGlyph puts the guide: centred, filling most of the shorter
-      // side. Colouring it in is what a well-traced letter looks like.
-      final guide = Rect.fromCenter(
-        center: canvas.center,
-        width: canvas.shortestSide * 0.7,
-        height: canvas.shortestSide * 0.7,
-      );
-
-      // Grading rasterises the canvas, which is real async work: it has to be
-      // started inside runAsync or it never completes under the fake clock.
-      await tester.runAsync(() async {
-        for (var y = guide.top; y <= guide.bottom; y += 8) {
-          await tester.dragFrom(
-            Offset(guide.left, y),
-            Offset(guide.width, 0),
-          );
-        }
-        await tester.tap(find.text('Check my tracing'));
-        await Future<void>.delayed(_settle);
-      });
+      await _scribble(tester, from: const Offset(160, 320));
+      await tester.tap(find.text('I finished this letter'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('% on the dots'), findsOneWidget);
-      expect(find.textContaining('Traced '), findsOneWidget);
-      expect(find.text('Next letter'), findsOneWidget);
-      expect(find.text('Check my tracing'), findsNothing);
+      expect(find.text('Show a grown-up'), findsOneWidget);
+
+      await tester.tap(find.text('Show a grown-up'));
+      await tester.pumpAndSettle();
+
+      // Both pages survive, each with the guide it was traced over, so the
+      // parent sees every letter rather than only the last one.
+      expect(submitted, isNotNull);
+      expect(submitted!.map((work) => work.title), ['Letter A', 'Letter B']);
+      expect(submitted!.every((work) => work.guide != null), isTrue);
+      expect(submitted!.every((work) => work.hasInk), isTrue);
     });
   });
 }
@@ -149,10 +164,13 @@ Widget _host(Widget child) {
   );
 }
 
-Future<void> _pumpTracing(WidgetTester tester) async {
+Future<void> _pumpTracing(
+  WidgetTester tester, {
+  CanvasWorkSubmitted? onFinish,
+}) async {
   await tester.pumpWidget(_host(TracingLevelView(
     level: _tracingLevel(),
-    onFinish: () {},
+    onFinish: onFinish ?? (_) {},
   )));
   // Fitting the glyph rasterises it, which needs real async time.
   await tester.runAsync(() => Future<void>.delayed(_settle));
