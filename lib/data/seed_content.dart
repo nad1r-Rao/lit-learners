@@ -4,6 +4,16 @@ import '../models/learning_module.dart';
 import '../models/quiz_question.dart';
 import '../models/video_lesson.dart';
 
+/// Stamp for the bundled content below.
+///
+/// The local database is seeded once and then read from, so edits here would
+/// otherwise never reach a device that already ran the app. Bumping this string
+/// makes the content repository reinstall the bundle on next launch, keeping
+/// progress and downloaded flags intact.
+///
+/// **Bump this whenever you add, remove or edit anything in this file.**
+const bundledContentRevision = '2026-08-07-tracing-module';
+
 const seedModules = <LearningModule>[
   LearningModule(
     id: 'math',
@@ -67,6 +77,17 @@ const seedModules = <LearningModule>[
     minStage: 1,
     maxStage: 4,
     order: 7,
+  ),
+  // Starts at stage 2: following a dotted line needs steadier hands than a
+  // one-year-old has.
+  LearningModule(
+    id: 'tracing',
+    title: 'Tracing',
+    description: 'Trace letters and numbers along dotted guides.',
+    category: ModuleCategory.tracing,
+    minStage: 2,
+    maxStage: 4,
+    order: 8,
   ),
 ];
 
@@ -1445,6 +1466,358 @@ const seedLevels = <LearningLevel>[
         prompt: 'Which shape is round?',
         options: ['Triangle', 'Circle', 'Square'],
         correctIndex: 1,
+      ),
+    ],
+  ),
+
+  // Tracing module. `displayText` holds the exact glyph that is drawn as the
+  // dotted guide and graded, so it must be the character itself and nothing
+  // more. Quizzes check that the child recognises what they just traced; the
+  // level score averages the tracing accuracy with the quiz result.
+  LearningLevel(
+    id: 'tracing-stage2-1',
+    moduleId: 'tracing',
+    stage: 2,
+    levelNumber: 1,
+    title: 'Trace A B C',
+    subtitle: 'Follow the dots to write your first capital letters.',
+    type: LevelType.tracing,
+    passingScore: 50,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Letter A',
+        prompt: 'Trace the letter A along the dots.',
+        displayText: 'A',
+        visualLabel: 'Dotted capital letter A',
+        audioCueKey: 'trace_letter_a',
+      ),
+      ContentItem(
+        title: 'Letter B',
+        prompt: 'Trace the letter B along the dots.',
+        displayText: 'B',
+        visualLabel: 'Dotted capital letter B',
+        audioCueKey: 'trace_letter_b',
+      ),
+      ContentItem(
+        title: 'Letter C',
+        prompt: 'Trace the letter C along the dots.',
+        displayText: 'C',
+        visualLabel: 'Dotted capital letter C',
+        audioCueKey: 'trace_letter_c',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage2-2',
+    moduleId: 'tracing',
+    stage: 2,
+    levelNumber: 2,
+    title: 'Trace 1 2 3',
+    subtitle: 'Write your first three numbers on the dots.',
+    type: LevelType.tracing,
+    passingScore: 50,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Number 1',
+        prompt: 'Trace the number one, straight down.',
+        displayText: '1',
+        visualLabel: 'Dotted number 1',
+        audioCueKey: 'trace_number_1',
+      ),
+      ContentItem(
+        title: 'Number 2',
+        prompt: 'Trace the number two, around and across.',
+        displayText: '2',
+        visualLabel: 'Dotted number 2',
+        audioCueKey: 'trace_number_2',
+      ),
+      ContentItem(
+        title: 'Number 3',
+        prompt: 'Trace the number three, two little curves.',
+        displayText: '3',
+        visualLabel: 'Dotted number 3',
+        audioCueKey: 'trace_number_3',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage3-1',
+    moduleId: 'tracing',
+    stage: 3,
+    levelNumber: 1,
+    title: 'Trace a b c',
+    subtitle: 'Small letters, one dotted line at a time.',
+    type: LevelType.tracing,
+    passingScore: 60,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Letter a',
+        prompt: 'Trace the small letter a.',
+        displayText: 'a',
+        visualLabel: 'Dotted small letter a',
+        audioCueKey: 'trace_letter_a_small',
+      ),
+      ContentItem(
+        title: 'Letter b',
+        prompt: 'Trace the small letter b.',
+        displayText: 'b',
+        visualLabel: 'Dotted small letter b',
+        audioCueKey: 'trace_letter_b_small',
+      ),
+      ContentItem(
+        title: 'Letter c',
+        prompt: 'Trace the small letter c.',
+        displayText: 'c',
+        visualLabel: 'Dotted small letter c',
+        audioCueKey: 'trace_letter_c_small',
+      ),
+      ContentItem(
+        title: 'Letter d',
+        prompt: 'Trace the small letter d.',
+        displayText: 'd',
+        visualLabel: 'Dotted small letter d',
+        audioCueKey: 'trace_letter_d_small',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-abc-q1',
+        prompt: 'Which small letter did you just trace first?',
+        options: ['a', 'z', 'm'],
+        correctIndex: 0,
+        explanation: 'The first card was the small letter a.',
+      ),
+      QuizQuestion(
+        id: 'tracing-abc-q2',
+        prompt: 'Which letter has a tall line and a round tummy?',
+        options: ['b', 'c', 'a'],
+        correctIndex: 0,
+        explanation: 'The letter b has a tall line and a round tummy.',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage3-2',
+    moduleId: 'tracing',
+    stage: 3,
+    levelNumber: 2,
+    title: 'Trace 4 5 6',
+    subtitle: 'Bigger numbers, same dotted lines.',
+    type: LevelType.tracing,
+    passingScore: 60,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Number 4',
+        prompt: 'Trace the number four.',
+        displayText: '4',
+        visualLabel: 'Dotted number 4',
+        audioCueKey: 'trace_number_4',
+      ),
+      ContentItem(
+        title: 'Number 5',
+        prompt: 'Trace the number five.',
+        displayText: '5',
+        visualLabel: 'Dotted number 5',
+        audioCueKey: 'trace_number_5',
+      ),
+      ContentItem(
+        title: 'Number 6',
+        prompt: 'Trace the number six.',
+        displayText: '6',
+        visualLabel: 'Dotted number 6',
+        audioCueKey: 'trace_number_6',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-456-q1',
+        prompt: 'Which number comes after 4?',
+        options: ['5', '3', '9'],
+        correctIndex: 0,
+        explanation: 'Counting up from 4 gives 5.',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage3-3',
+    moduleId: 'tracing',
+    stage: 3,
+    levelNumber: 3,
+    title: 'اردو حروف لکھیں',
+    subtitle: 'نقطوں پر انگلی چلا کر اردو حروف بنائیں۔',
+    type: LevelType.tracing,
+    passingScore: 60,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'الف',
+        prompt: 'نقطوں پر الف بنائیں۔',
+        displayText: 'ا',
+        visualLabel: 'نقطوں والا الف',
+        audioCueKey: 'trace_urdu_alif',
+      ),
+      ContentItem(
+        title: 'بے',
+        prompt: 'نقطوں پر بے بنائیں۔',
+        displayText: 'ب',
+        visualLabel: 'نقطوں والی بے',
+        audioCueKey: 'trace_urdu_bay',
+      ),
+      ContentItem(
+        title: 'پے',
+        prompt: 'نقطوں پر پے بنائیں۔',
+        displayText: 'پ',
+        visualLabel: 'نقطوں والی پے',
+        audioCueKey: 'trace_urdu_pay',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-urdu-q1',
+        prompt: 'اردو کا پہلا حرف کون سا ہے؟',
+        options: ['ا', 'ب', 'پ'],
+        correctIndex: 0,
+        explanation: 'اردو کا پہلا حرف الف ہے۔',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage4-1',
+    moduleId: 'tracing',
+    stage: 4,
+    levelNumber: 1,
+    title: 'Trace Name Letters',
+    subtitle: 'Neat capitals that show up in lots of names.',
+    type: LevelType.tracing,
+    passingScore: 70,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Letter M',
+        prompt: 'Trace the letter M without lifting your finger.',
+        displayText: 'M',
+        visualLabel: 'Dotted capital letter M',
+        audioCueKey: 'trace_letter_m',
+      ),
+      ContentItem(
+        title: 'Letter S',
+        prompt: 'Trace the curvy letter S.',
+        displayText: 'S',
+        visualLabel: 'Dotted capital letter S',
+        audioCueKey: 'trace_letter_s',
+      ),
+      ContentItem(
+        title: 'Letter T',
+        prompt: 'Trace the letter T, down then across.',
+        displayText: 'T',
+        visualLabel: 'Dotted capital letter T',
+        audioCueKey: 'trace_letter_t',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-names-q1',
+        prompt: 'Which letter is made of one line down and one across?',
+        options: ['T', 'S', 'M'],
+        correctIndex: 0,
+        explanation: 'T is a line down with a line across the top.',
+      ),
+      QuizQuestion(
+        id: 'tracing-names-q2',
+        prompt: 'Which letter is the curvy one?',
+        options: ['S', 'T', 'M'],
+        correctIndex: 0,
+        explanation: 'S curves one way and then the other.',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage4-2',
+    moduleId: 'tracing',
+    stage: 4,
+    levelNumber: 2,
+    title: 'Trace 7 8 9',
+    subtitle: 'The last single numbers, traced slowly.',
+    type: LevelType.tracing,
+    passingScore: 70,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Number 7',
+        prompt: 'Trace the number seven, across then down.',
+        displayText: '7',
+        visualLabel: 'Dotted number 7',
+        audioCueKey: 'trace_number_7',
+      ),
+      ContentItem(
+        title: 'Number 8',
+        prompt: 'Trace the number eight, two circles.',
+        displayText: '8',
+        visualLabel: 'Dotted number 8',
+        audioCueKey: 'trace_number_8',
+      ),
+      ContentItem(
+        title: 'Number 9',
+        prompt: 'Trace the number nine, a circle and a line.',
+        displayText: '9',
+        visualLabel: 'Dotted number 9',
+        audioCueKey: 'trace_number_9',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-789-q1',
+        prompt: 'Which number is made of two circles?',
+        options: ['8', '7', '9'],
+        correctIndex: 0,
+        explanation: 'The number 8 is two circles stacked up.',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage4-3',
+    moduleId: 'tracing',
+    stage: 4,
+    levelNumber: 3,
+    title: 'صاف اردو لکھائی',
+    subtitle: 'حروف کو نقطوں پر صاف اور آہستہ لکھیں۔',
+    type: LevelType.tracing,
+    passingScore: 70,
+    isBundled: false,
+    contentItems: [
+      ContentItem(
+        title: 'سین',
+        prompt: 'نقطوں پر سین بنائیں۔',
+        displayText: 'س',
+        visualLabel: 'نقطوں والی سین',
+        audioCueKey: 'trace_urdu_seen',
+      ),
+      ContentItem(
+        title: 'میم',
+        prompt: 'نقطوں پر میم بنائیں۔',
+        displayText: 'م',
+        visualLabel: 'نقطوں والی میم',
+        audioCueKey: 'trace_urdu_meem',
+      ),
+      ContentItem(
+        title: 'نون',
+        prompt: 'نقطوں پر نون بنائیں۔',
+        displayText: 'ن',
+        visualLabel: 'نقطوں والی نون',
+        audioCueKey: 'trace_urdu_noon',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-urdu-q2',
+        prompt: 'کون سا حرف نقطے والا ہے؟',
+        options: ['ن', 'س', 'م'],
+        correctIndex: 0,
+        explanation: 'نون کے اوپر ایک نقطہ ہوتا ہے۔',
       ),
     ],
   ),
