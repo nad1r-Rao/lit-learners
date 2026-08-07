@@ -27,6 +27,7 @@ class FirestoreMediaAssetRepository implements MediaAssetRepository {
     required String fileName,
     required String contentType,
     required List<int> bytes,
+    String? moduleId,
   }) async {
     _validateUpload(fileName: fileName, bytes: bytes);
     final ref = _assetsRef.doc();
@@ -52,6 +53,7 @@ class FirestoreMediaAssetRepository implements MediaAssetRepository {
       createdByParentId: parentId,
       createdAt: now,
       updatedAt: now,
+      moduleId: moduleId,
     );
     await ref.set(_toRemoteMap(asset));
     return asset;
@@ -99,6 +101,7 @@ class FirestoreMediaAssetRepository implements MediaAssetRepository {
       createdByParentId: (data['createdByParentId'] as String?) ?? '',
       createdAt: _dateFromRemoteValue(data['createdAt']) ?? now,
       updatedAt: _dateFromRemoteValue(data['updatedAt']) ?? now,
+      moduleId: data['moduleId'] as String?,
     );
   }
 
@@ -114,6 +117,7 @@ class FirestoreMediaAssetRepository implements MediaAssetRepository {
       'createdByParentId': asset.createdByParentId,
       'createdAt': Timestamp.fromDate(asset.createdAt),
       'updatedAt': Timestamp.fromDate(asset.updatedAt),
+      'moduleId': asset.moduleId,
     };
   }
 
