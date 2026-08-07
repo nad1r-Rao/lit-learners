@@ -11,6 +11,7 @@ import '../../views/child_dashboard/level_player_page.dart';
 import '../../views/child_dashboard/module_levels_page.dart';
 import '../../views/leaderboard/leaderboard_page.dart';
 import '../../views/onboarding/manual_page.dart';
+import '../../views/onboarding/onboarding_language_page.dart';
 import '../../views/onboarding/readiness_test_page.dart';
 import '../../views/profile/parental_lock_page.dart';
 import '../../views/profile/profile_create_edit_page.dart';
@@ -89,6 +90,7 @@ class AppRouter {
         RouteNames.signup => const SignupPage(),
         RouteNames.forgotPassword => const ForgotPasswordPage(),
         RouteNames.onboardingManual => const ManualPage(),
+        RouteNames.onboardingLanguage => const OnboardingLanguagePage(),
         RouteNames.onboardingTest => const ReadinessTestPage(),
         RouteNames.adminDashboard => const AdminDashboardPage(),
         RouteNames.adminContent => const AdminContentPage(),

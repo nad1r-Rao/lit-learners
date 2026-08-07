@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/localization/onboarding_strings.dart';
 import '../../core/routing/route_names.dart';
+import '../../models/onboarding.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/onboarding_viewmodel.dart';
 import '../../widgets/app_primary_button.dart';
+import 'widgets/onboarding_language_toggle.dart';
 
 class ManualPage extends StatefulWidget {
   const ManualPage({super.key});
@@ -39,16 +42,30 @@ class _ManualPageState extends State<ManualPage> {
     final auth = context.watch<AuthViewModel>();
     final onboarding = context.watch<OnboardingViewModel>();
     final parent = auth.parent;
+    final language = onboarding.language;
+    final strings = OnboardingStrings.of(language);
 
     if (parent == null) {
-      return const Scaffold(body: Center(child: Text('Parent not signed in.')));
+      return Scaffold(body: Center(child: Text(strings.notSignedIn)));
     }
 
     final pages = onboarding.manualPages;
     final isLastPage = _pageIndex == pages.length - 1;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Parent Manual')),
+      appBar: AppBar(
+        title: Directionality(
+          textDirection: language.textDirection,
+          child: Text(
+            strings.manualTitle,
+            style: language.styleFor(null),
+          ),
+        ),
+        actions: const [
+          OnboardingLanguageToggle(),
+          SizedBox(width: 12),
+        ],
+      ),
       body: SafeArea(
         child: pages.isEmpty
             ? const Center(child: CircularProgressIndicator())
@@ -60,6 +77,8 @@ class _ManualPageState extends State<ManualPage> {
                       parentName: _parentLabel(parent.email),
                       currentPage: _pageIndex + 1,
                       totalPages: pages.length,
+                      language: language,
+                      strings: strings,
                     ),
                   ),
                   Expanded(
@@ -74,12 +93,27 @@ class _ManualPageState extends State<ManualPage> {
                         final page = pages[index];
                         return Padding(
                           padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-                          child: Center(
-                            child: _ManualCard(
-                              icon: _iconFor(page.iconName),
-                              title: page.title,
-                              body: page.body,
-                            ),
+                          // Centred when the card fits, scrollable when it does
+                          // not: Urdu bodies run taller than their English
+                          // counterparts and short phones have little room.
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return SingleChildScrollView(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: constraints.maxHeight,
+                                  ),
+                                  child: Center(
+                                    child: _ManualCard(
+                                      icon: _iconFor(page.iconName),
+                                      title: page.title,
+                                      body: page.body,
+                                      language: language,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         );
                       },
@@ -101,13 +135,18 @@ class _ManualPageState extends State<ManualPage> {
                           icon: isLastPage
                               ? Icons.assignment_turned_in
                               : Icons.arrow_forward,
-                          label: isLastPage ? 'Start readiness test' : 'Next',
+                          label: isLastPage
+                              ? strings.startReadinessTest
+                              : strings.next,
+                          labelStyle: language.styleFor(null),
                           onPressed: () async {
                             if (isLastPage) {
                               await onboarding.completeManual(parent.id);
                               if (!context.mounted) return;
+                              // Straight to the picker so the parent chooses
+                              // the readiness test's language first.
                               Navigator.of(context).pushReplacementNamed(
-                                RouteNames.onboardingTest,
+                                RouteNames.onboardingLanguage,
                               );
                               return;
                             }
@@ -142,58 +181,71 @@ class _ManualHeader extends StatelessWidget {
     required this.parentName,
     required this.currentPage,
     required this.totalPages,
+    required this.language,
+    required this.strings,
   });
 
   final String parentName;
   final int currentPage;
   final int totalPages;
+  final OnboardingLanguage language;
+  final OnboardingStrings strings;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.lavender,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.54)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: AppColors.honey,
-              borderRadius: BorderRadius.circular(16),
+    return Directionality(
+      textDirection: language.textDirection,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.lavender,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.lilac.withValues(alpha: 0.54)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: AppColors.honey,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.menu_book_rounded, color: AppColors.ink),
             ),
-            child: const Icon(Icons.menu_book_rounded, color: AppColors.ink),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome back, $parentName 👋',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Guide $currentPage of $totalPages',
-                  style: TextStyle(
-                    color: AppColors.ink.withValues(alpha: 0.64),
-                    fontWeight: FontWeight.w700,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${strings.welcomeBack}, $parentName 👋',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: language.textAlign,
+                    style: language.styleFor(
+                      Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    strings.guideProgressFor(currentPage, totalPages),
+                    textAlign: language.textAlign,
+                    style: language.styleFor(
+                      TextStyle(
+                        color: AppColors.ink.withValues(alpha: 0.64),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -204,11 +256,13 @@ class _ManualCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.body,
+    required this.language,
   });
 
   final IconData icon;
   final String title;
   final String body;
+  final OnboardingLanguage language;
 
   @override
   Widget build(BuildContext context) {
@@ -244,22 +298,32 @@ class _ManualCard extends StatelessWidget {
               child: Icon(icon, size: 34, color: AppColors.honey),
             ),
             const SizedBox(height: 18),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+            Directionality(
+              textDirection: language.textDirection,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: language.styleFor(
+                  Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
-            Text(
-              body,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.86),
-                    height: 1.35,
-                  ),
+            Directionality(
+              textDirection: language.textDirection,
+              child: Text(
+                body,
+                textAlign: TextAlign.center,
+                style: language.styleFor(
+                  Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.86),
+                        height: language.bodyLineHeight,
+                      ),
+                ),
+              ),
             ),
           ],
         ),

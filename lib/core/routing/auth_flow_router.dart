@@ -17,10 +17,12 @@ class AuthFlowRouter {
     await onboarding.loadForParent(parent.id);
     if (!context.mounted) return;
 
+    // The language picker, not the test itself: a parent returning to an
+    // unfinished test still gets to choose the language it is written in.
     final route = !onboarding.manualCompleted
         ? RouteNames.onboardingManual
         : !onboarding.testPassed
-            ? RouteNames.onboardingTest
+            ? RouteNames.onboardingLanguage
             : RouteNames.profiles;
 
     if (replace) {

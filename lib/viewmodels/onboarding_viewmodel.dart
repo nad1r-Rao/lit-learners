@@ -14,6 +14,7 @@ class OnboardingViewModel extends ChangeNotifier {
   List<ManualPageContent> _manualPages = const [];
   List<ReadinessQuestion> _questions = const [];
   final Map<String, int> _selectedAnswers = {};
+  OnboardingLanguage _language = OnboardingLanguage.english;
   bool _isLoading = false;
   int? _latestScore;
   bool? _latestPassed;
@@ -21,6 +22,7 @@ class OnboardingViewModel extends ChangeNotifier {
   ParentOnboardingState? get state => _state;
   List<ManualPageContent> get manualPages => List.unmodifiable(_manualPages);
   List<ReadinessQuestion> get questions => List.unmodifiable(_questions);
+  OnboardingLanguage get language => _language;
   bool get isLoading => _isLoading;
   int get currentManualPage => _state?.lastManualPageIndex ?? 0;
   int? get latestScore => _latestScore;
@@ -35,12 +37,33 @@ class OnboardingViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _manualPages = await _onboardingRepository.getManualPages();
-    _questions = await _onboardingRepository.getReadinessQuestions();
+    await _loadContent();
     _state = await _onboardingRepository.getState(parentId);
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  /// Swaps the guide and the readiness test into [value].
+  ///
+  /// Answers already given are kept: both languages use the same question ids
+  /// and the same option order, so a parent who switches part-way through does
+  /// not start over and no answer changes from right to wrong.
+  Future<void> setLanguage(OnboardingLanguage value) async {
+    if (_language == value) return;
+
+    _language = value;
+    await _loadContent();
+    notifyListeners();
+  }
+
+  Future<void> _loadContent() async {
+    _manualPages = await _onboardingRepository.getManualPages(
+      language: _language,
+    );
+    _questions = await _onboardingRepository.getReadinessQuestions(
+      language: _language,
+    );
   }
 
   Future<void> saveManualPage(String parentId, int pageIndex) async {
