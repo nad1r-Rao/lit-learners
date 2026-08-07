@@ -96,6 +96,30 @@ void main() {
       expect(viewModel.levels, isEmpty);
     });
 
+    test('refuses to publish a module that has no levels', () async {
+      final viewModel = AdminContentViewModel(
+        InMemoryAdminContentRepository(
+          contentRemoteDataSource: InMemoryContentRemoteDataSource(),
+        ),
+      );
+      await viewModel.createModule(
+        id: 'Math',
+        title: 'Math',
+        description: 'Numbers',
+        category: ModuleCategory.math,
+        minStage: 1,
+        maxStage: 4,
+        order: 1,
+        isPublished: false,
+      );
+
+      final published = await viewModel.publishModule(viewModel.modules.single);
+
+      expect(published, isFalse);
+      expect(viewModel.modules.single.isPublished, isFalse);
+      expect(viewModel.errorMessage, contains('at least one level'));
+    });
+
     test('moves admin content through review and published versions', () async {
       final viewModel = AdminContentViewModel(
         InMemoryAdminContentRepository(
@@ -111,6 +135,20 @@ void main() {
         minStage: 1,
         maxStage: 4,
         order: 1,
+        isPublished: false,
+      );
+
+      // UC-19 business rule: a module needs at least one level before it can
+      // be published, so the workflow test supplies one.
+      await viewModel.createLevel(
+        id: '',
+        moduleId: 'math',
+        stage: 1,
+        levelNumber: 1,
+        title: 'Count to 3',
+        subtitle: 'Count together',
+        type: LevelType.counting,
+        passingScore: 70,
         isPublished: false,
       );
 

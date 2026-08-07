@@ -211,7 +211,21 @@ class AdminContentViewModel extends ChangeNotifier {
     );
   }
 
+  /// Number of levels currently defined for [moduleId].
+  int levelCountForModule(String moduleId) {
+    return _levels.where((item) => item.level.moduleId == moduleId).length;
+  }
+
   Future<bool> publishModule(AdminContentModule module) {
+    // UC-19 business rule: each module must have at least one level. Enforced
+    // at publish rather than create so drafts can be built up incrementally.
+    if (levelCountForModule(module.module.id) == 0) {
+      _setError(
+        'Add at least one level to "${module.module.title}" before publishing.',
+      );
+      return Future.value(false);
+    }
+
     final now = DateTime.now();
     return _saveModule(
       module.copyWith(
