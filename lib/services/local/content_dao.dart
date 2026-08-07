@@ -21,6 +21,11 @@ abstract class ContentDao {
   Future<List<LearningLevel>> getLevelsForModule(String moduleId);
   Future<LearningLevel?> getLevelById(String levelId);
   Future<void> markLevelDownloaded(String levelId);
+
+  /// Which revision of the bundled content is currently installed, or null on
+  /// a database that predates the stamp.
+  Future<String?> getContentRevision();
+  Future<void> setContentRevision(String revision);
 }
 
 class SqfliteContentDao implements ContentDao {
@@ -114,6 +119,31 @@ class SqfliteContentDao implements ContentDao {
         downloadedLevelIds: const {},
       );
     });
+  }
+
+  static const _contentRevisionKey = 'bundledContentRevision';
+
+  @override
+  Future<String?> getContentRevision() async {
+    final db = await _dbHelper.database;
+    final rows = await db.query(
+      LocalDbSchema.appMeta,
+      where: 'metaKey = ?',
+      whereArgs: [_contentRevisionKey],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return rows.first['metaValue'] as String?;
+  }
+
+  @override
+  Future<void> setContentRevision(String revision) async {
+    final db = await _dbHelper.database;
+    await db.insert(
+      LocalDbSchema.appMeta,
+      {'metaKey': _contentRevisionKey, 'metaValue': revision},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   @override
@@ -254,6 +284,15 @@ class SqfliteContentDao implements ContentDao {
 class InMemoryContentDao implements ContentDao {
   final Map<String, LearningModule> _modulesById = {};
   final Map<String, LearningLevel> _levelsById = {};
+  String? _contentRevision;
+
+  @override
+  Future<String?> getContentRevision() async => _contentRevision;
+
+  @override
+  Future<void> setContentRevision(String revision) async {
+    _contentRevision = revision;
+  }
 
   @override
   Future<List<LearningLevel>> getLevelsForModule(String moduleId) async {

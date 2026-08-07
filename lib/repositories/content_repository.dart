@@ -21,6 +21,7 @@ class CachedContentRepository implements ContentRepository {
     ContentSyncService? contentSyncService,
     this.bundledModules = seedModules,
     this.bundledLevels = seedLevels,
+    this.contentRevision = bundledContentRevision,
   })  : _contentDao = contentDao,
         _contentSyncService = contentSyncService;
 
@@ -28,6 +29,10 @@ class CachedContentRepository implements ContentRepository {
   final ContentSyncService? _contentSyncService;
   final List<LearningModule> bundledModules;
   final List<LearningLevel> bundledLevels;
+
+  /// Identifies the bundle in [bundledLevels]. When it differs from what the
+  /// database was seeded with, the bundle is reinstalled.
+  final String contentRevision;
   bool _didCheckSeed = false;
   bool _didCheckRemoteContent = false;
 
@@ -76,6 +81,17 @@ class CachedContentRepository implements ContentRepository {
         modules: bundledModules,
         levels: bundledLevels,
       );
+      await _contentDao.setContentRevision(contentRevision);
+    } else if (await _contentDao.getContentRevision() != contentRevision) {
+      // The app shipped new or edited bundled content since this device was
+      // seeded. Without this, levels added to the bundle would never appear on
+      // an existing install. `replaceContent` keeps downloaded flags, and level
+      // progress lives in its own table, so nothing the child earned is lost.
+      await _contentDao.replaceContent(
+        modules: bundledModules,
+        levels: bundledLevels,
+      );
+      await _contentDao.setContentRevision(contentRevision);
     }
     _didCheckSeed = true;
     await _syncRemoteContentIfAvailable();
