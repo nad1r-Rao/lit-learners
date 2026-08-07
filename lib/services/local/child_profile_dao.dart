@@ -7,6 +7,12 @@ import 'db_schema.dart';
 
 abstract class ChildProfileDao {
   Future<List<ChildProfile>> getByParent(String parentId);
+
+  /// Every cached profile across all parents.
+  ///
+  /// Used by the admin statistics screen, which reports system-wide totals
+  /// rather than one parent's children.
+  Future<List<ChildProfile>> getAll();
   Future<ChildProfile?> getById(String childId);
   Future<List<ChildProfile>> getUnsynced();
   Future<void> upsert(ChildProfile profile);
@@ -68,6 +74,16 @@ class SqfliteChildProfileDao implements ChildProfileDao {
       LocalDbSchema.childProfiles,
       where: 'parentId = ?',
       whereArgs: [parentId],
+      orderBy: 'createdAt ASC',
+    );
+    return rows.map(ChildProfileMapper.fromLocalMap).toList();
+  }
+
+  @override
+  Future<List<ChildProfile>> getAll() async {
+    final db = await _dbHelper.database;
+    final rows = await db.query(
+      LocalDbSchema.childProfiles,
       orderBy: 'createdAt ASC',
     );
     return rows.map(ChildProfileMapper.fromLocalMap).toList();
@@ -159,6 +175,12 @@ class InMemoryChildProfileDao implements ChildProfileDao {
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return profiles;
+  }
+
+  @override
+  Future<List<ChildProfile>> getAll() async {
+    return _profilesById.values.toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
   @override
