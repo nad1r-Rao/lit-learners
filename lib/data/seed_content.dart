@@ -12,7 +12,7 @@ import '../models/video_lesson.dart';
 /// progress and downloaded flags intact.
 ///
 /// **Bump this whenever you add, remove or edit anything in this file.**
-const bundledContentRevision = '2026-08-07-tracing-module';
+const bundledContentRevision = '2026-08-07-parent-marked-canvas';
 
 const seedModules = <LearningModule>[
   LearningModule(
@@ -1325,7 +1325,7 @@ const seedLevels = <LearningLevel>[
     title: 'Picture Prompts',
     subtitle: 'Build a simple picture from three drawing steps.',
     type: LevelType.drawing,
-    passingScore: 75,
+    passingScore: 70,
     isBundled: true,
     contentItems: [
       ContentItem(
@@ -1375,7 +1375,7 @@ const seedLevels = <LearningLevel>[
     title: 'Color Story',
     subtitle: 'Draw a beginning, middle, and end with colors.',
     type: LevelType.drawing,
-    passingScore: 75,
+    passingScore: 70,
     isBundled: false,
     contentItems: [
       ContentItem(
