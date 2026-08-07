@@ -30,11 +30,12 @@ class FirestoreLeaderboardRemoteDataSource
 
   @override
   Future<void> deleteEntryForChild(String childId) async {
-    final batch = _firestore.batch();
+    // Deleted one stage at a time rather than in a batch: a batch fails as a
+    // whole, and the security rule reads `resource.data.parentId`, which errors
+    // out on the stages where this child has no entry.
     for (var stage = 1; stage <= 4; stage++) {
-      batch.delete(_entriesRef(stage).doc(childId));
+      await _deleteIfPresent(stage: stage, childId: childId);
     }
-    await batch.commit();
   }
 
   @override
@@ -42,10 +43,12 @@ class FirestoreLeaderboardRemoteDataSource
     required int ageStage,
     int limit = 20,
   }) async {
+    // Ordered by score alone so the query runs on Firestore's automatic
+    // single-field index. Ordering by three fields needs a composite index that
+    // has to be deployed first, and the whole board fails until it is. The view
+    // model applies the stars and recency tie-breaks client side anyway.
     final snapshot = await _entriesRef(ageStage)
         .orderBy('totalScore', descending: true)
-        .orderBy('totalStars', descending: true)
-        .orderBy('lastActivityAt', descending: true)
         .limit(limit)
         .get();
     return snapshot.docs.map(_fromRemoteDoc).toList();
@@ -53,10 +56,34 @@ class FirestoreLeaderboardRemoteDataSource
 
   @override
   Future<void> upsertEntry(LeaderboardEntry entry) async {
-    await deleteEntryForChild(entry.childId);
+    // Write first so the child always has a current entry, then clear any stale
+    // one left in another stage after a birthday. Cleanup failures must not
+    // lose the write that matters.
     await _entriesRef(entry.ageStage)
         .doc(entry.childId)
         .set(_toRemoteMap(entry), SetOptions(merge: true));
+
+    for (var stage = 1; stage <= 4; stage++) {
+      if (stage == entry.ageStage) continue;
+      await _deleteIfPresent(stage: stage, childId: entry.childId);
+    }
+  }
+
+  Future<void> _deleteIfPresent({
+    required int stage,
+    required String childId,
+  }) async {
+    final ref = _entriesRef(stage).doc(childId);
+    try {
+      final snapshot = await ref.get();
+      if (!snapshot.exists) return;
+      await ref.delete();
+    } on FirebaseException catch (error) {
+      if (error.code == 'not-found' || error.code == 'permission-denied') {
+        return;
+      }
+      rethrow;
+    }
   }
 
   LeaderboardEntry _fromRemoteDoc(
