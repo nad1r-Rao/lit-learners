@@ -23,7 +23,16 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
-class InMemoryAuthRepository implements AuthRepository {
+/// Optional capability for enumerating registered accounts.
+///
+/// Only the admin monitoring screens need this, so it is kept off
+/// [AuthRepository] — a parent-facing repository has no business listing every
+/// account. In Firebase mode the equivalent read happens in Firestore.
+abstract class ParentDirectory {
+  Future<List<ParentAccount>> allParents();
+}
+
+class InMemoryAuthRepository implements AuthRepository, ParentDirectory {
   InMemoryAuthRepository({
     Set<String> adminEmails = const {'admin@littlelearners.local'},
   }) : _adminEmails = adminEmails
@@ -37,6 +46,12 @@ class InMemoryAuthRepository implements AuthRepository {
 
   @override
   Future<ParentAccount?> currentParent() async => _currentParent;
+
+  @override
+  Future<List<ParentAccount>> allParents() async {
+    return _parentsByEmail.values.map((stored) => stored.account).toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
 
   @override
   Future<ParentAccount> signIn({
