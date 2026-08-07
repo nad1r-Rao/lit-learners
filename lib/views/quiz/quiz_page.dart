@@ -57,7 +57,7 @@ class _QuizPageState extends State<QuizPage> {
           create: (_) => QuizViewModel(level),
           child: _QuizBody(
             level: level,
-            tracingScore: widget.args.tracingScore,
+            parentMark: widget.args.parentMark,
           ),
         );
       },
@@ -68,11 +68,11 @@ class _QuizPageState extends State<QuizPage> {
 class _QuizBody extends StatelessWidget {
   const _QuizBody({
     required this.level,
-    this.tracingScore,
+    this.parentMark,
   });
 
   final LearningLevel level;
-  final int? tracingScore;
+  final int? parentMark;
 
   @override
   Widget build(BuildContext context) {
@@ -99,10 +99,10 @@ class _QuizBody extends StatelessWidget {
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
-                if (tracingScore != null)
+                if (parentMark != null)
                   Chip(
-                    avatar: const Icon(Icons.gesture, size: 16),
-                    label: Text('Tracing $tracingScore%'),
+                    avatar: const Icon(Icons.how_to_reg, size: 16),
+                    label: Text('Marked $parentMark%'),
                     visualDensity: VisualDensity.compact,
                   ),
               ],
@@ -237,9 +237,9 @@ class _QuizBody extends StatelessWidget {
     final child = context.read<ActiveChildSession>().activeChild;
     if (child == null) return;
 
-    final score = QuizViewModel.combineWithTracing(
+    final score = QuizViewModel.combineWithParentMark(
       quizPercent: quiz.scorePercent,
-      tracingScore: tracingScore,
+      parentMark: parentMark,
     );
     if (score < level.passingScore) {
       await showDialog<void>(

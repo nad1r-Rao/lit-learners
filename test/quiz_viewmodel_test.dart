@@ -4,39 +4,39 @@ import 'package:little_learners/models/quiz_question.dart';
 import 'package:little_learners/viewmodels/quiz_viewmodel.dart';
 
 void main() {
-  group('QuizViewModel.combineWithTracing', () {
-    test('a level without tracing keeps its quiz percentage', () {
+  group('QuizViewModel.combineWithParentMark', () {
+    test('a level with no canvas half keeps its quiz percentage', () {
       expect(
-        QuizViewModel.combineWithTracing(quizPercent: 80),
+        QuizViewModel.combineWithParentMark(quizPercent: 80),
         80,
       );
     });
 
-    test('a tracing level averages both halves', () {
+    test('a canvas level averages both halves', () {
       expect(
-        QuizViewModel.combineWithTracing(quizPercent: 100, tracingScore: 60),
+        QuizViewModel.combineWithParentMark(quizPercent: 100, parentMark: 60),
         80,
       );
       expect(
-        QuizViewModel.combineWithTracing(quizPercent: 50, tracingScore: 50),
+        QuizViewModel.combineWithParentMark(quizPercent: 50, parentMark: 50),
         50,
       );
     });
 
-    test('a perfect quiz cannot hide sloppy tracing', () {
-      final combined = QuizViewModel.combineWithTracing(
+    test('a perfect quiz cannot overturn a low mark from the parent', () {
+      final combined = QuizViewModel.combineWithParentMark(
         quizPercent: 100,
-        tracingScore: 20,
+        parentMark: 20,
       );
 
       expect(combined, 60);
       expect(combined, lessThan(100));
     });
 
-    test('perfect tracing cannot hide a failed quiz', () {
-      final combined = QuizViewModel.combineWithTracing(
+    test('a top mark from the parent cannot hide a failed quiz', () {
+      final combined = QuizViewModel.combineWithParentMark(
         quizPercent: 0,
-        tracingScore: 100,
+        parentMark: 100,
       );
 
       expect(combined, 50);
@@ -44,7 +44,7 @@ void main() {
 
     test('an odd total rounds to the nearest whole mark', () {
       expect(
-        QuizViewModel.combineWithTracing(quizPercent: 70, tracingScore: 75),
+        QuizViewModel.combineWithParentMark(quizPercent: 70, parentMark: 75),
         73,
       );
     });

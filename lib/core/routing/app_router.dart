@@ -42,14 +42,15 @@ class CelebrationArgs {
 class QuizArgs {
   const QuizArgs({
     required this.levelId,
-    this.tracingScore,
+    this.parentMark,
   });
 
   final String levelId;
 
-  /// Accuracy already earned on a tracing level, carried into the quiz so the
-  /// final mark reflects both halves of the level instead of only the quiz.
-  final int? tracingScore;
+  /// The grade a parent already gave the canvas half of this level, carried
+  /// into the quiz so the final mark reflects both halves instead of only the
+  /// questions.
+  final int? parentMark;
 }
 
 class VideoPlayerArgs {
