@@ -50,6 +50,51 @@ flutter pub get
 flutter run
 ```
 
+## Admin Portal
+
+The admin portal runs inside the same app but on a **separate session** from the
+parent/child flow (UC-18). Reach it from the **Admin login** link at the bottom of
+the parent login screen, or by navigating to `/admin/login`.
+
+Signing in as an admin never authenticates a parent, and signing in as a parent
+never grants admin access. In Firebase mode the portal authenticates against a
+secondary `FirebaseApp` so it cannot clobber `FirebaseAuth.instance.currentUser`.
+
+Menu (requirement 2):
+
+- **Manage Content** — create/edit/delete modules, levels and quizzes, plus the
+  media library.
+- **View Parent Accounts** — monitoring-only list of registered parents and their
+  child-profile counts.
+- **View Progress Statistics** — registered parents, child profiles, module usage
+  and level completion.
+- **Admin Logout** — confirmation prompt, session termination, redirect to login.
+
+Business rules enforced:
+
+- A module cannot be **published** until it has at least one level.
+- Quiz questions are stored on their level, so a quiz always belongs to a level.
+- Uploaded media must be assigned to a module.
+
+### Demo mode credentials
+
+With `--dart-define=USE_FIREBASE=false` the portal uses an in-memory admin so it
+can be explored without a Firebase project:
+
+```
+admin@littlelearners.local / Admin@123
+```
+
+These are seeded in `InMemoryAdminAuthRepository` and exist only in demo mode.
+
+### Firebase mode
+
+Admin access is granted by setting `parents/{uid}.role` to `admin` from a trusted
+console. The statistics and account screens read across `parents`,
+`childProfiles` and `levelProgress`, which requires the admin read grants and the
+collection-group rules in `firestore.rules` — deploy those before using the
+portal against Firebase, or every query returns permission-denied.
+
 ## Backend Setup
 
 The Android app is registered with Firebase through `android/app/google-services.json`. Firestore disk persistence is enabled during startup and Firebase Storage holds uploaded media bytes.
