@@ -7,8 +7,12 @@ class RouteNames {
   static const forgotPassword = '/forgot-password';
   static const onboardingManual = '/onboarding/manual';
   static const onboardingTest = '/onboarding/test';
+  static const adminLogin = '/admin/login';
   static const adminDashboard = '/admin';
   static const adminContent = '/admin/content';
+  static const adminParentAccounts = '/admin/parent-accounts';
+  static const adminProgressStatistics = '/admin/progress-statistics';
+  static const adminMedia = '/admin/media';
   static const profiles = '/profiles';
   static const profileEdit = '/profiles/edit';
   static const parentReports = '/parent/reports';

@@ -6,10 +6,15 @@ import 'core/config/app_config.dart';
 import 'core/routing/app_router.dart';
 import 'core/routing/route_names.dart';
 import 'core/theme/app_theme.dart';
+import 'repositories/admin_auth_repository.dart';
 import 'repositories/admin_authorization_repository.dart';
 import 'repositories/admin_content_repository.dart';
 import 'repositories/admin_koala_guide_repository.dart';
+import 'repositories/admin_stats_repository.dart';
 import 'repositories/auth_repository.dart';
+import 'repositories/firebase_admin_auth_repository.dart';
+import 'repositories/firestore_admin_stats_repository.dart';
+import 'repositories/local_admin_stats_repository.dart';
 import 'repositories/child_profile_repository.dart';
 import 'repositories/content_repository.dart';
 import 'repositories/firestore_admin_content_repository.dart';
@@ -56,7 +61,10 @@ import 'services/sync/sync_service.dart';
 import 'services/sync/sync_orchestrator.dart';
 import 'services/storage/media_storage_data_source.dart';
 import 'viewmodels/active_child_session.dart';
+import 'viewmodels/admin_auth_viewmodel.dart';
 import 'viewmodels/admin_content_viewmodel.dart';
+import 'viewmodels/admin_media_viewmodel.dart';
+import 'viewmodels/admin_stats_viewmodel.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/leaderboard_viewmodel.dart';
 import 'viewmodels/learning_viewmodel.dart';
@@ -118,8 +126,29 @@ final AdminKoalaGuideRepository _baseAdminKoalaGuideRepository =
         : InMemoryAdminKoalaGuideRepository(
             remoteDataSource: _inMemoryKoalaGuideRemoteDataSource,
           );
-final _adminAuthorizationRepository = AuthAdminAuthorizationRepository(
-  _authRepository,
+// UC-18: the admin portal runs on its own session, so admin work authorizes
+// against [_adminAuthRepository] rather than the signed-in parent.
+final AdminAuthRepository _adminAuthRepository = _firebaseEnabled
+    ? FirebaseAdminAuthRepository()
+    : InMemoryAdminAuthRepository();
+final _adminAuthorizationRepository = AdminSessionAuthorizationRepository(
+  _adminAuthRepository,
+);
+// Demo mode reports real numbers from the local cache rather than placeholder
+// values, so the dashboard reflects profiles and progress created in-session.
+final AdminStatsRepository _adminStatsRepository =
+    AuthorizedAdminStatsRepository(
+  delegate: _firebaseEnabled
+      ? FirestoreAdminStatsRepository()
+      : LocalAdminStatsRepository(
+          childProfileDao: _childProfileDao,
+          progressDao: _progressDao,
+          contentDao: _contentDao,
+          parentDirectory: _authRepository is ParentDirectory
+              ? _authRepository as ParentDirectory
+              : null,
+        ),
+  authorizationRepository: _adminAuthorizationRepository,
 );
 final AdminContentRepository _adminContentRepository =
     AuthorizedAdminContentRepository(
@@ -224,6 +253,8 @@ class LittleLearnersApp extends StatelessWidget {
         Provider<AdminAuthorizationRepository>.value(
           value: _adminAuthorizationRepository,
         ),
+        Provider<AdminAuthRepository>.value(value: _adminAuthRepository),
+        Provider<AdminStatsRepository>.value(value: _adminStatsRepository),
         Provider<AdminContentRepository>.value(value: _adminContentRepository),
         Provider<AdminKoalaGuideRepository>.value(
           value: _adminKoalaGuideRepository,
@@ -255,6 +286,15 @@ class LittleLearnersApp extends StatelessWidget {
           value: _leaderboardSyncService,
         ),
         ChangeNotifierProvider(create: (_) => AuthViewModel(_authRepository)),
+        ChangeNotifierProvider(
+          create: (_) => AdminAuthViewModel(_adminAuthRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AdminStatsViewModel(_adminStatsRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AdminMediaViewModel(_mediaAssetRepository),
+        ),
         ChangeNotifierProvider(
           create: (_) => AdminContentViewModel(
             _adminContentRepository,
