@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/routing/route_names.dart';
 import '../../models/admin_content.dart';
 import '../../models/koala_guide_message.dart';
 import '../../models/learning_level.dart';
 import '../../models/learning_module.dart';
+import '../../viewmodels/admin_auth_viewmodel.dart';
 import '../../viewmodels/admin_content_viewmodel.dart';
-import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/app_primary_button.dart';
 import '../../widgets/koala_guide.dart';
+import 'widgets/admin_scaffold.dart';
 
 class AdminContentPage extends StatefulWidget {
   const AdminContentPage({super.key});
@@ -50,8 +52,8 @@ class _AdminContentPageState extends State<AdminContentPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final parent = context.watch<AuthViewModel>().parent;
-    if (parent?.canManageAdminContent == true && !_didRequestLoad) {
+    final isAdmin = context.watch<AdminAuthViewModel>().isAuthenticated;
+    if (isAdmin && !_didRequestLoad) {
       _didRequestLoad = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -85,36 +87,28 @@ class _AdminContentPageState extends State<AdminContentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthViewModel>();
-    if (auth.isLoading) {
-      return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
-      );
-    }
-
-    if (auth.parent?.canManageAdminContent != true) {
-      return const _AdminAccessDeniedPage();
-    }
-
     final admin = context.watch<AdminContentViewModel>();
     final modules = admin.modules;
     _selectedModuleId ??= modules.isEmpty ? null : modules.first.module.id;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Content'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh content',
-            onPressed: admin.isLoading
-                ? null
-                : () => context.read<AdminContentViewModel>().loadContent(),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: ListView(
+    return AdminScaffold(
+      title: 'Manage Content',
+      actions: [
+        IconButton(
+          tooltip: 'Media library',
+          onPressed: () =>
+              Navigator.of(context).pushNamed(RouteNames.adminMedia),
+          icon: const Icon(Icons.perm_media_outlined),
+        ),
+        IconButton(
+          tooltip: 'Refresh content',
+          onPressed: admin.isLoading
+              ? null
+              : () => context.read<AdminContentViewModel>().loadContent(),
+          icon: const Icon(Icons.refresh),
+        ),
+      ],
+      child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             const ContextualKoalaGuide(
@@ -191,8 +185,7 @@ class _AdminContentPageState extends State<AdminContentPage> {
                 onSubmit: _createLevel,
               ),
             ],
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -252,46 +245,6 @@ class _AdminContentPageState extends State<AdminContentPage> {
     _quizOptionsController.clear();
     _videoTitleController.clear();
     _videoUrlController.clear();
-  }
-}
-
-class _AdminAccessDeniedPage extends StatelessWidget {
-  const _AdminAccessDeniedPage();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Admin Content')),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.admin_panel_settings,
-                  size: 48,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Admin access required',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'This parent account is not approved to manage content.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

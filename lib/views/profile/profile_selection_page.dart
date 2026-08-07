@@ -73,12 +73,8 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
           ],
         ),
         actions: [
-          if (parent.canManageAdminContent)
-            IconButton(
-              tooltip: 'Admin dashboard',
-              onPressed: () => _openLockedAdminDashboard(context),
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-            ),
+          // The admin portal is reached through its own login (UC-18), not
+          // from an authenticated parent session.
           IconButton(
             tooltip: 'Log out',
             onPressed: () => _showLogoutSheet(context),
@@ -173,15 +169,6 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
       RouteNames.parentalLock,
       arguments: const ParentalLockArgs(
         successRoute: RouteNames.parentReports,
-      ),
-    );
-  }
-
-  void _openLockedAdminDashboard(BuildContext context) {
-    Navigator.of(context).pushNamed(
-      RouteNames.parentalLock,
-      arguments: const ParentalLockArgs(
-        successRoute: RouteNames.adminDashboard,
       ),
     );
   }
