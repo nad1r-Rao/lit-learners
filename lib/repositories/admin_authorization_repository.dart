@@ -1,5 +1,6 @@
 import '../models/admin_content.dart';
 import '../models/parent_account.dart';
+import 'admin_auth_repository.dart';
 import 'admin_content_repository.dart';
 import 'admin_koala_guide_repository.dart';
 import 'auth_repository.dart';
@@ -50,6 +51,43 @@ class AuthAdminAuthorizationRepository implements AdminAuthorizationRepository {
       throw const AdminPermissionException(
         'This parent account is not approved to manage content.',
       );
+    }
+  }
+}
+
+/// Authorizes admin work against the dedicated admin session (UC-18) rather
+/// than the parent session.
+///
+/// [AuthAdminAuthorizationRepository] remains for flows that still key off a
+/// parent account with `role == admin`.
+class AdminSessionAuthorizationRepository
+    implements AdminAuthorizationRepository {
+  const AdminSessionAuthorizationRepository(this._adminAuthRepository);
+
+  final AdminAuthRepository _adminAuthRepository;
+
+  @override
+  Future<bool> canManageContent() async {
+    final admin = await currentParent();
+    return admin?.canManageAdminContent ?? false;
+  }
+
+  @override
+  Future<ParentAccount?> currentParent() {
+    return _adminAuthRepository.currentAdmin();
+  }
+
+  @override
+  Future<void> requireContentAdmin() async {
+    final admin = await currentParent();
+    if (admin == null) {
+      throw const AdminPermissionException(
+        'Sign in to the admin portal to manage content.',
+      );
+    }
+
+    if (!admin.canManageAdminContent) {
+      throw const AdminPermissionException(AdminAuthMessages.notAnAdmin);
     }
   }
 }
