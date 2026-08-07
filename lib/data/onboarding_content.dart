@@ -31,6 +31,13 @@ const manualPages = <ManualPageContent>[
         'safe learning spaces.',
     iconName: 'lock',
   ),
+  ManualPageContent(
+    title: 'You Mark The Drawing',
+    body: 'Drawing and tracing are not scored by the app. When the child says '
+        'they are done, solve the parent check and give the page a mark '
+        'yourself.',
+    iconName: 'marking',
+  ),
 ];
 
 const manualPagesUrdu = <ManualPageContent>[
@@ -57,6 +64,12 @@ const manualPagesUrdu = <ManualPageContent>[
     body: 'والدین کے حصے ایک آسان سوال کے پیچھے محفوظ رہتے ہیں تاکہ بچہ صرف '
         'سیکھنے کی محفوظ جگہوں میں رہے۔',
     iconName: 'lock',
+  ),
+  ManualPageContent(
+    title: 'ڈرائنگ کے نمبر آپ دیں',
+    body: 'ڈرائنگ اور تحریر کو ایپ خود نمبر نہیں دیتی۔ جب بچہ کہے کہ کام مکمل '
+        'ہو گیا، تو پیرنٹ چیک حل کریں اور صفحے کو خود نمبر دیں۔',
+    iconName: 'marking',
   ),
 ];
 

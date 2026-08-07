@@ -171,6 +171,7 @@ class _ManualPageState extends State<ManualPage> {
       'timer' => Icons.timer,
       'heart' => Icons.favorite,
       'lock' => Icons.lock,
+      'marking' => Icons.rate_review,
       _ => Icons.menu_book,
     };
   }
