@@ -223,14 +223,22 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
   ) async {
     final profileVm = context.read<ProfileViewModel>();
     final avatarForSave = await _avatarForSave(parentId, editingProfile);
-    if (!context.mounted || avatarForSave == null) return;
+    if (!context.mounted) return;
+    // A photo that would not upload must not block creating the profile: the
+    // parent keeps their details and falls back to a colour avatar.
+    if (avatarForSave == null) {
+      final saveWithoutPhoto = await _confirmSaveWithoutPhoto(context);
+      if (!context.mounted || !saveWithoutPhoto) return;
+      setState(() => _avatarAsset = _fallbackAvatar(editingProfile));
+    }
+    final resolvedAvatar = avatarForSave ?? _avatarAsset;
 
     final success = editingProfile == null
         ? await profileVm.createProfile(
             parentId: parentId,
             name: _nameController.text,
             age: _age,
-            avatarAsset: avatarForSave,
+            avatarAsset: resolvedAvatar,
             leaderboardOptIn: _leaderboardOptIn,
             displayPreference: _displayPreference,
           )
@@ -238,7 +246,7 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
             profile: editingProfile,
             name: _nameController.text,
             age: _age,
-            avatarAsset: avatarForSave,
+            avatarAsset: resolvedAvatar,
             leaderboardOptIn: _leaderboardOptIn,
             displayPreference: _displayPreference,
           );
@@ -286,15 +294,64 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
       if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Avatar upload failed: ${error.message ?? error.code}',
-          ),
+          content: Text(_uploadErrorMessage(error)),
+          duration: const Duration(seconds: 6),
         ),
       );
       return null;
     } finally {
       if (mounted) setState(() => _isUploadingAvatar = false);
     }
+  }
+
+  /// Firebase Storage error codes say little to a parent, and the two common
+  /// ones here both mean the project is not set up rather than that they did
+  /// something wrong.
+  String _uploadErrorMessage(FirebaseException error) {
+    return switch (error.code) {
+      'object-not-found' || 'bucket-not-found' =>
+        'Photo upload is unavailable: this app\'s photo storage is not set up '
+            'yet. You can still pick a colour avatar.',
+      'unauthorized' =>
+        'Photo upload was not permitted. You can still pick a colour avatar.',
+      'retry-limit-exceeded' || 'network-request-failed' =>
+        'Photo upload timed out. Check your connection and try again.',
+      _ => 'Photo upload failed: ${error.message ?? error.code}',
+    };
+  }
+
+  Future<bool> _confirmSaveWithoutPhoto(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Save without the photo?'),
+          content: const Text(
+            'The photo could not be uploaded. The profile can be saved with a '
+            'colour avatar instead, and you can add a photo later.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Back'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Save anyway'),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
+  }
+
+  /// Whatever the profile had before the failed photo pick, or the first
+  /// colour avatar for a brand new profile.
+  String _fallbackAvatar(ChildProfile? editingProfile) {
+    final previous = editingProfile?.avatarAsset;
+    if (previous != null && !previous.startsWith('file://')) return previous;
+    return _avatars.first;
   }
 
   Future<void> _confirmDelete(
