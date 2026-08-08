@@ -159,4 +159,14 @@ class LearningViewModel extends ChangeNotifier {
   }
 
   bool get hasActiveProfile => _activeChildId != null && _activeStage != null;
+
+  /// Stars across every module, for the summary on the module picker. Cheap
+  /// because progress is already loaded — no per-module level fetch needed.
+  int get totalStarsEarned {
+    return _progress.fold(0, (sum, progress) => sum + progress.starsEarned);
+  }
+
+  int get completedLevelCount {
+    return _progress.where((progress) => progress.completed).length;
+  }
 }
