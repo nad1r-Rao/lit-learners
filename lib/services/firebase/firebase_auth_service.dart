@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../models/parent_account.dart';
 import '../../repositories/auth_repository.dart';
+import '../auth/google_identity_service.dart';
 
 abstract class ParentAuthRemoteDataSource {
   ParentAccount? currentParent();
@@ -17,16 +18,22 @@ abstract class ParentAuthRemoteDataSource {
     required String password,
   });
 
-  Future<void> sendPasswordReset(String email);
+  /// Returns null when the parent dismisses the Google account chooser.
+  Future<ParentAccount?> signInWithGoogle();
 
   Future<void> signOut();
 }
 
 class FirebaseAuthService implements ParentAuthRemoteDataSource {
-  FirebaseAuthService({FirebaseAuth? auth})
-      : _auth = auth ?? FirebaseAuth.instance;
+  FirebaseAuthService({
+    FirebaseAuth? auth,
+    GoogleIdentityService? googleIdentityService,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _googleIdentityService =
+            googleIdentityService ?? PluginGoogleIdentityService();
 
   final FirebaseAuth _auth;
+  final GoogleIdentityService _googleIdentityService;
 
   @override
   ParentAccount? currentParent() {
@@ -68,16 +75,27 @@ class FirebaseAuthService implements ParentAuthRemoteDataSource {
   }
 
   @override
-  Future<void> sendPasswordReset(String email) async {
+  Future<ParentAccount?> signInWithGoogle() async {
+    final idToken = await _googleIdentityService.requestIdToken();
+    if (idToken == null) return null;
+
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim().toLowerCase());
+      final credential = await _auth.signInWithCredential(
+        GoogleAuthProvider.credential(idToken: idToken),
+      );
+      return _toParentAccount(credential.user);
     } on FirebaseAuthException catch (error) {
       throw AuthException(firebaseAuthMessageFor(error));
     }
   }
 
   @override
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    // Clear Google too, otherwise the next "Continue with Google" silently
+    // re-uses the account the parent just left.
+    await _googleIdentityService.signOut();
+    await _auth.signOut();
+  }
 
   ParentAccount _toParentAccount(User? user) {
     if (user == null || user.email == null) {
@@ -117,6 +135,9 @@ String firebaseAuthMessageFor(FirebaseAuthException error) {
       return 'Email or password is incorrect.';
     case 'weak-password':
       return 'Use a stronger password.';
+    case 'account-exists-with-different-credential':
+      return 'This email already has a password account. Sign in with your '
+          'password, then link Google from account settings.';
     default:
       return message.isEmpty
           ? 'Authentication failed. Please try again.'
@@ -125,5 +146,6 @@ String firebaseAuthMessageFor(FirebaseAuthException error) {
 }
 
 const _firebaseSetupMessage =
-    'Firebase Email/Password sign-in is not enabled yet. In Firebase Console, '
-    'open Authentication > Sign-in method and enable Email/Password.';
+    'This sign-in method is not enabled yet. In Firebase Console, open '
+    'Authentication > Sign-in method and enable Email/Password and Google. '
+    'Google also needs this app\'s SHA-1 and SHA-256 fingerprints registered.';

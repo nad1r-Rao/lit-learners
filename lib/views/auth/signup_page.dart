@@ -90,6 +90,13 @@ class _SignupPageState extends State<SignupPage> {
               label: auth.isLoading ? 'Creating...' : 'Create account',
               onPressed: auth.isLoading ? null : () => _submit(context),
             ),
+            const SizedBox(height: 14),
+            const AuthOrDivider(),
+            const SizedBox(height: 14),
+            AuthGoogleButton(
+              label: 'Sign up with Google',
+              onPressed: auth.isLoading ? null : () => _submitGoogle(context),
+            ),
             const SizedBox(height: 10),
             Wrap(
               alignment: WrapAlignment.center,
@@ -130,6 +137,19 @@ class _SignupPageState extends State<SignupPage> {
       email: _emailController.text,
       password: _passwordController.text,
     );
+    if (!context.mounted || !success || auth.parent == null) return;
+
+    await AuthFlowRouter.routeAfterAuth(
+      context: context,
+      parent: auth.parent!,
+    );
+  }
+
+  Future<void> _submitGoogle(BuildContext context) async {
+    // Google has no separate sign-up: the same call creates the account the
+    // first time and signs in on every later visit.
+    final auth = context.read<AuthViewModel>();
+    final success = await auth.signInWithGoogle();
     if (!context.mounted || !success || auth.parent == null) return;
 
     await AuthFlowRouter.routeAfterAuth(

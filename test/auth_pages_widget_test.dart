@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:little_learners/core/theme/app_theme.dart';
 import 'package:little_learners/repositories/auth_repository.dart';
 import 'package:little_learners/viewmodels/auth_viewmodel.dart';
+import 'package:little_learners/views/auth/forgot_password_page.dart';
 import 'package:little_learners/views/auth/login_page.dart';
 import 'package:little_learners/views/auth/signup_page.dart';
 import 'package:provider/provider.dart';
@@ -43,17 +44,83 @@ void main() {
     );
     expect(errorCapture.errors, isEmpty);
   });
+
+  testWidgets('LoginPage offers Google alongside the password form',
+      (tester) async {
+    await _pumpAuthPage(tester, const LoginPage());
+
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Forgot password?'), findsOneWidget);
+  });
+
+  testWidgets('ForgotPasswordPage walks email, code and new password',
+      (tester) async {
+    final repository = InMemoryAuthRepository();
+    await repository.signUp(email: 'parent@example.com', password: 'Old1!aaa');
+    await _pumpAuthPage(
+      tester,
+      const ForgotPasswordPage(),
+      repository: repository,
+      // Taller than the other auth pages: the last step shows two password
+      // fields plus the rules line, and every control has to be tappable.
+      size: const Size(390, 844),
+    );
+
+    expect(find.text('RESET'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'parent@example.com');
+    await _tap(tester, 'Send code');
+
+    expect(find.text('Verify code'), findsOneWidget);
+
+    await tester.enterText(
+      find.byType(TextField),
+      repository.lastOtpFor('parent@example.com')!,
+    );
+    await _tap(tester, 'Verify code');
+
+    expect(find.text('Save new password'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, 'Brand1New!');
+    await tester.enterText(find.byType(TextField).last, 'Brand1New!');
+    await _tap(tester, 'Save new password');
+
+    expect(find.text('Back to sign in'), findsOneWidget);
+
+    // The point of the whole flow: the account really does take the new
+    // password now.
+    final signedIn = await repository.signIn(
+      email: 'parent@example.com',
+      password: 'Brand1New!',
+    );
+
+    expect(signedIn.email, 'parent@example.com');
+  });
 }
 
-Future<void> _pumpAuthPage(WidgetTester tester, Widget page) async {
-  tester.view.physicalSize = const Size(320, 568);
+/// Taps the button carrying [label] and lets the resulting rebuild finish.
+Future<void> _tap(WidgetTester tester, String label) async {
+  final button = find.text(label);
+  await tester.ensureVisible(button);
+  await tester.pump();
+  await tester.tap(button);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpAuthPage(
+  WidgetTester tester,
+  Widget page, {
+  InMemoryAuthRepository? repository,
+  Size size = const Size(320, 568),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
   await tester.pumpWidget(
     ChangeNotifierProvider(
-      create: (_) => AuthViewModel(InMemoryAuthRepository()),
+      create: (_) => AuthViewModel(repository ?? InMemoryAuthRepository()),
       child: MaterialApp(
         theme: AppTheme.light(),
         home: page,

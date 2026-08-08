@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:little_learners/models/onboarding.dart';
 import 'package:little_learners/models/parent_account.dart';
+import 'package:little_learners/repositories/auth_repository.dart';
 import 'package:little_learners/repositories/firebase_auth_repository.dart';
 import 'package:little_learners/services/firebase/firebase_auth_service.dart';
 import 'package:little_learners/services/firebase/parent_firestore_service.dart';
+import 'package:little_learners/services/firebase/password_reset_service.dart';
 
 void main() {
   group('FirebaseAuthRepository', () {
@@ -16,6 +18,7 @@ void main() {
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: parentRemoteDataSource,
+        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
       );
 
       final created = await repository.signUp(
@@ -37,6 +40,7 @@ void main() {
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: parentRemoteDataSource,
+        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
       );
 
       final signedIn = await repository.signIn(
@@ -55,6 +59,7 @@ void main() {
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: parentRemoteDataSource,
+        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
       );
 
       final currentParent = await repository.currentParent();
@@ -63,17 +68,62 @@ void main() {
       expect(parentRemoteDataSource.ensuredParentIds, [account.id]);
     });
 
-    test('delegates password reset and sign out', () async {
+    test('signs in with Google through the parent document', () async {
+      final account = _parentAccount('parent-google');
+      final authService =
+          _FakeParentAuthRemoteDataSource(googleParent: account);
+      final parentRemoteDataSource = _FakeParentRemoteDataSource();
+      final repository = FirebaseAuthRepository(
+        authService: authService,
+        parentRemoteDataSource: parentRemoteDataSource,
+        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
+      );
+
+      final signedIn = await repository.signInWithGoogle();
+
+      expect(signedIn.id, account.id);
+      expect(parentRemoteDataSource.ensuredParentIds, [account.id]);
+    });
+
+    test('reports a cancelled Google chooser as its own exception', () async {
+      // Null from the data source means the parent dismissed the sheet; the
+      // UI has to tell that apart from a real failure.
+      final repository = FirebaseAuthRepository(
+        authService: _FakeParentAuthRemoteDataSource(),
+        parentRemoteDataSource: _FakeParentRemoteDataSource(),
+        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
+      );
+
+      expect(
+        repository.signInWithGoogle(),
+        throwsA(isA<GoogleSignInCancelled>()),
+      );
+    });
+
+    test('walks the OTP reset through to a stored password', () async {
       final authService = _FakeParentAuthRemoteDataSource();
+      final passwordReset = _FakePasswordResetRemoteDataSource();
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: _FakeParentRemoteDataSource(),
+        passwordResetRemoteDataSource: passwordReset,
       );
 
-      await repository.sendPasswordReset('parent@example.com');
+      await repository.requestPasswordResetOtp('parent@example.com');
+      final token = await repository.verifyPasswordResetOtp(
+        email: 'parent@example.com',
+        otp: '123456',
+      );
+      await repository.confirmPasswordReset(
+        email: 'parent@example.com',
+        resetToken: token,
+        newPassword: 'Stronger1!',
+      );
       await repository.signOut();
 
-      expect(authService.passwordResetEmail, 'parent@example.com');
+      expect(passwordReset.requestedEmail, 'parent@example.com');
+      expect(passwordReset.verifiedOtp, '123456');
+      expect(passwordReset.storedPassword, 'Stronger1!');
       expect(authService.didSignOut, isTrue);
     });
 
@@ -86,7 +136,7 @@ void main() {
         ),
       );
 
-      expect(message, contains('Email/Password sign-in is not enabled'));
+      expect(message, contains('Authentication > Sign-in method'));
     });
   });
 }
@@ -104,13 +154,15 @@ class _FakeParentAuthRemoteDataSource implements ParentAuthRemoteDataSource {
     this.current,
     ParentAccount? signInParent,
     ParentAccount? signUpParent,
+    ParentAccount? googleParent,
   })  : _signInParent = signInParent,
-        _signUpParent = signUpParent;
+        _signUpParent = signUpParent,
+        _googleParent = googleParent;
 
   ParentAccount? current;
   final ParentAccount? _signInParent;
   final ParentAccount? _signUpParent;
-  String? passwordResetEmail;
+  final ParentAccount? _googleParent;
   bool didSignOut = false;
 
   @override
@@ -133,9 +185,7 @@ class _FakeParentAuthRemoteDataSource implements ParentAuthRemoteDataSource {
   }
 
   @override
-  Future<void> sendPasswordReset(String email) async {
-    passwordResetEmail = email;
-  }
+  Future<ParentAccount?> signInWithGoogle() async => _googleParent;
 
   @override
   Future<void> signOut() async {
@@ -181,5 +231,38 @@ class _FakeParentRemoteDataSource implements ParentRemoteDataSource {
     required bool passed,
   }) {
     throw UnimplementedError();
+  }
+}
+
+class _FakePasswordResetRemoteDataSource
+    implements PasswordResetRemoteDataSource {
+  String? requestedEmail;
+  String? verifiedOtp;
+  String? storedPassword;
+
+  @override
+  Future<void> requestOtp(String email) async {
+    requestedEmail = email;
+  }
+
+  @override
+  Future<String> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    verifiedOtp = otp;
+    return 'reset-token';
+  }
+
+  @override
+  Future<void> confirmReset({
+    required String email,
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    if (resetToken != 'reset-token') {
+      throw const AuthException('Verify the code again before continuing.');
+    }
+    storedPassword = newPassword;
   }
 }
