@@ -2,11 +2,20 @@ import 'package:flutter/foundation.dart';
 
 import '../models/learning_reminder.dart';
 import '../repositories/learning_reminder_repository.dart';
+import '../services/notifications/local_notification_service.dart';
 
 class LearningReminderViewModel extends ChangeNotifier {
-  LearningReminderViewModel(this._reminderRepository);
+  LearningReminderViewModel(
+    this._reminderRepository, {
+    LocalNotificationService? localNotifications,
+  }) : _localNotifications =
+            localNotifications ?? NoopLocalNotificationService();
 
   final LearningReminderRepository _reminderRepository;
+
+  /// Saving a reminder is only half the job — without this the row shows up in
+  /// the list and the phone never buzzes.
+  final LocalNotificationService _localNotifications;
 
   List<LearningReminder> _reminders = [];
   List<LearningReminder> _dueReminders = [];
@@ -27,6 +36,9 @@ class LearningReminderViewModel extends ChangeNotifier {
 
     try {
       _reminders = await _reminderRepository.getReminders(parentId);
+      // Every mutation funnels back through here, so this one call keeps the
+      // OS alarms in step with creates, edits, toggles and deletes alike.
+      await _localNotifications.syncReminders(_reminders);
     } catch (error) {
       _errorMessage = 'Reminders could not load. Please try again.';
     }

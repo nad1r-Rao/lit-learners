@@ -33,6 +33,32 @@ class LearningReminder {
     return !_isSameDay(triggeredAt, at);
   }
 
+  /// The most recent moment this reminder should have gone off at or before
+  /// [at], or null when it has not come round yet this week.
+  ///
+  /// [isDueAt] only matches the exact minute, which is right for a ticking
+  /// scheduler but wrong for catching up on what a parent missed while the app
+  /// was closed.
+  DateTime? lastOccurrenceOnOrBefore(DateTime at) {
+    if (!enabled) return null;
+
+    for (var dayOffset = 0; dayOffset <= 7; dayOffset++) {
+      final candidate = _dateTimeFor(
+        at.year,
+        at.month,
+        at.day - dayOffset,
+        hour,
+        minute,
+        isUtc: at.isUtc,
+      );
+      if (!candidate.isAfter(at) && weekdays.contains(candidate.weekday)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
   DateTime nextOccurrenceAfter(DateTime after) {
     for (var dayOffset = 0; dayOffset <= 7; dayOffset++) {
       final candidate = _dateTimeFor(

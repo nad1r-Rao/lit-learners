@@ -14,6 +14,7 @@ class RouteNames {
   static const profileEdit = '/profiles/edit';
   static const parentReports = '/parent/reports';
   static const parentReminders = '/parent/reminders';
+  static const parentNotifications = '/parent/notifications';
   static const leaderboard = '/parent/leaderboard';
   static const parentalLock = '/parental-lock';
   static const parentMarking = '/parent/marking';

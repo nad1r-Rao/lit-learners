@@ -12,6 +12,7 @@ import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/leaderboard_viewmodel.dart';
 import '../../viewmodels/learning_viewmodel.dart';
+import '../../viewmodels/notification_viewmodel.dart';
 import '../../viewmodels/parent_report_viewmodel.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../widgets/child_avatar.dart';
@@ -93,6 +94,13 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
           ],
         ),
         actions: [
+          _NotificationBell(
+            unread: context.watch<NotificationViewModel>().unreadCount,
+            onPressed: () => Navigator.of(context).pushNamed(
+              RouteNames.parentNotifications,
+            ),
+          ),
+          const SizedBox(width: 4),
           if (parent.canManageAdminContent)
             IconButton.filled(
               tooltip: 'Admin dashboard',
@@ -177,6 +185,9 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
       context.read<ProfileViewModel>().loadProfiles(parentId),
       context.read<ParentReportViewModel>().loadReport(parentId),
       context.read<LeaderboardViewModel>().loadLeaderboard(parentId: parentId),
+      // Also catches up on reminders that fired while the app was closed, so
+      // the bell badge is right the moment the dashboard appears.
+      context.read<NotificationViewModel>().load(parentId),
     ]);
   }
 
@@ -345,6 +356,61 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell({required this.unread, required this.onPressed});
+
+  final int unread;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: unread == 0 ? 'Notifications' : 'Notifications, $unread unread',
+      child: ExcludeSemantics(
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton.filled(
+              tooltip: 'Notifications',
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.16),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: onPressed,
+              icon: const Icon(Icons.notifications_none_rounded),
+            ),
+            if (unread > 0)
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  constraints: const BoxConstraints(minWidth: 18),
+                  height: 18,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.coral,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Text(
+                    unread > 9 ? '9+' : '$unread',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/routing/route_names.dart';
 import '../../models/koala_guide_message.dart';
 import '../../models/learning_reminder.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/learning_reminder_viewmodel.dart';
+import '../../viewmodels/notification_viewmodel.dart';
 import '../../widgets/app_primary_button.dart';
 import '../../widgets/koala_guide.dart';
 
@@ -76,6 +78,7 @@ class _LearningRemindersPanelState extends State<LearningRemindersPanel> {
       _loadedParentId = parent.id;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<LearningReminderViewModel>().loadReminders(parent.id);
+        context.read<NotificationViewModel>().refreshPermission();
       });
     }
   }
@@ -99,6 +102,8 @@ class _LearningRemindersPanelState extends State<LearningRemindersPanel> {
       padding: widget.padding,
       children: [
         _RemindersHeader(count: reminders.reminders.length),
+        const SizedBox(height: 14),
+        const _DeliveryStatusCard(),
         const SizedBox(height: 14),
         if (widget.showGuide) ...[
           const ContextualKoalaGuide(
@@ -175,6 +180,99 @@ class _LearningRemindersPanelState extends State<LearningRemindersPanel> {
     if (!created || !context.mounted) return;
 
     _titleController.text = 'Learning time';
+  }
+}
+
+/// Answers the question a parent actually has about this screen: will the
+/// phone really buzz? A saved schedule with notifications switched off at the
+/// OS level looks identical to a working one otherwise.
+class _DeliveryStatusCard extends StatelessWidget {
+  const _DeliveryStatusCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = context.watch<NotificationViewModel>();
+    final granted = notifications.permissionGranted;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: granted
+            ? AppColors.mint
+            : AppColors.lemon.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: granted ? AppColors.leaf : AppColors.honey),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                granted
+                    ? Icons.notifications_active_rounded
+                    : Icons.notifications_off_rounded,
+                color: granted ? AppColors.forest : AppColors.coral,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  granted
+                      ? 'This phone will show your reminders'
+                      : 'Notifications are switched off on this phone',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            granted
+                ? 'Reminders are scheduled on the device, so they arrive even '
+                    'when the app is closed.'
+                : 'Schedules below are saved, but nothing will pop up until '
+                    'you allow notifications.',
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (!granted)
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      final model = context.read<NotificationViewModel>();
+                      final allowed = await model.requestPermission();
+                      if (allowed) await model.sendTestNotification();
+                    },
+                    icon: const Icon(Icons.notifications_active_outlined),
+                    label: const Text('Allow notifications'),
+                  ),
+                )
+              else
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context
+                        .read<NotificationViewModel>()
+                        .sendTestNotification(),
+                    icon: const Icon(Icons.send_outlined),
+                    label: const Text('Send a test'),
+                  ),
+                ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).pushNamed(
+                    RouteNames.parentNotifications,
+                  ),
+                  icon: const Icon(Icons.inbox_outlined),
+                  label: const Text('History'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

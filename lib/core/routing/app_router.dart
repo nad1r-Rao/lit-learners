@@ -14,6 +14,7 @@ import '../../views/child_dashboard/level_player_page.dart';
 import '../../views/child_dashboard/module_levels_page.dart';
 import '../../views/leaderboard/leaderboard_page.dart';
 import '../../views/marking/parent_marking_page.dart';
+import '../../views/notifications/notification_center_page.dart';
 import '../../views/onboarding/manual_page.dart';
 import '../../views/onboarding/onboarding_language_page.dart';
 import '../../views/onboarding/readiness_test_page.dart';
@@ -142,6 +143,7 @@ class AppRouter {
           ),
         RouteNames.parentReports => const ParentReportsPage(),
         RouteNames.parentReminders => const ParentRemindersPage(),
+        RouteNames.parentNotifications => const NotificationCenterPage(),
         RouteNames.leaderboard => const LeaderboardPage(),
         RouteNames.childHome => const HomePage(),
         RouteNames.moduleLevels => ModuleLevelsPage(

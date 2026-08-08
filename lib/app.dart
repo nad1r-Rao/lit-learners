@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -42,6 +43,7 @@ import 'services/local/content_dao.dart';
 import 'services/local/db_helper.dart';
 import 'services/local/progress_dao.dart';
 import 'services/local/sync_outbox_dao.dart';
+import 'services/notifications/local_notification_service.dart';
 import 'services/audio/koala_audio_player.dart';
 import 'services/remote/child_profile_remote_data_source.dart';
 import 'services/remote/content_remote_data_source.dart';
@@ -63,12 +65,19 @@ import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/leaderboard_viewmodel.dart';
 import 'viewmodels/learning_viewmodel.dart';
 import 'viewmodels/learning_reminder_viewmodel.dart';
+import 'viewmodels/notification_viewmodel.dart';
 import 'viewmodels/onboarding_viewmodel.dart';
 import 'viewmodels/parental_lock_viewmodel.dart';
 import 'viewmodels/parent_report_viewmodel.dart';
 import 'viewmodels/profile_viewmodel.dart';
 
 bool get _firebaseEnabled => AppConfig.useFirebase && Firebase.apps.isNotEmpty;
+
+/// flutter_local_notifications only ships an Android and iOS implementation
+/// that this app targets; anywhere else the no-op keeps the wiring identical.
+bool get _supportsLocalNotifications =>
+    defaultTargetPlatform == TargetPlatform.android ||
+    defaultTargetPlatform == TargetPlatform.iOS;
 
 final _parentRemoteDataSource =
     _firebaseEnabled ? ParentFirestoreService() : null;
@@ -161,6 +170,10 @@ final _notificationDeliveryRepository = ReminderNotificationDeliveryRepository(
   reminderRepository: _learningReminderRepository,
   remoteDataSource: _notificationDeliveryRemoteDataSource,
 );
+final LocalNotificationService localNotificationService =
+    _supportsLocalNotifications
+        ? FlutterLocalNotificationService()
+        : NoopLocalNotificationService();
 final _profileRepository = CachedChildProfileRepository(
   profileDao: _childProfileDao,
   syncOutboxDao: _syncOutboxDao,
@@ -264,9 +277,19 @@ class LittleLearnersApp extends StatelessWidget {
             contentSyncService: _contentSyncService,
           ),
         ),
+        Provider<LocalNotificationService>.value(
+          value: localNotificationService,
+        ),
         ChangeNotifierProvider(
           create: (_) => LearningReminderViewModel(
             _learningReminderRepository,
+            localNotifications: localNotificationService,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => NotificationViewModel(
+            repository: _notificationDeliveryRepository,
+            localNotifications: localNotificationService,
           ),
         ),
         ChangeNotifierProvider(
