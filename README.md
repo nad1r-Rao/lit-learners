@@ -36,6 +36,10 @@ Little Learners is a Flutter e-learning app for toddlers ages 1 to 4. This repos
 - Media asset backend pipeline with upload/list/delete repositories, Firestore metadata, and local demo storage.
 - Privacy-aware leaderboard backend for opt-in, anonymized, age-stage grouped child rankings.
 - Notification delivery backend that turns due reminder preferences into delivery/read records.
+- Device-scheduled learning reminders through `flutter_local_notifications`, so a reminder fires with the app closed and returns after a reboot.
+- In-app notification centre with unread badge, mark-as-read, swipe-to-delete, and a catch-up pass for reminders that fired while the app was shut.
+- Google sign-in alongside email/password, sharing one parent document and onboarding path.
+- Password reset by emailed six-digit code (OTP), backed by Cloud Functions in `functions/` that verify the code and store the new password with the Admin SDK.
 - Sync orchestration with connectivity-aware task skipping and retry/backoff state.
 - Admin publishing workflow with draft, review, published status, versioning, and publish timestamps.
 - Parent reporting dashboard for child progress, quiz scores, rewards, watched videos, and profile activity.
@@ -86,10 +90,11 @@ Firebase mode currently persists:
 - Media asset metadata in `mediaAssets/{assetId}` documents and uploaded bytes in Firebase Storage under `mediaAssets/{type}/{assetId}/{fileName}`.
 - Age-stage leaderboard entries in `leaderboards/stage-{stage}/entries/{childId}` documents.
 - Notification deliveries in `parents/{uid}/notificationDeliveries/{deliveryId}` documents.
+- Password reset codes and one-shot reset tokens, hashed, in `passwordResetOtps/{hash}` documents that only the Cloud Functions can reach.
 
 Local demo mode treats `admin@littlelearners.local` as an admin email after signup. For Firebase mode, promote an approved account by setting `parents/{uid}.role` to `admin` from a trusted backend/admin console. A draft Firestore rules file is included at `firestore.rules` to enforce the same content-admin boundary server-side.
 
-Security rules are included in `firestore.rules` and `storage.rules`. Deploy them with `firebase deploy --only firestore:rules,firestore:indexes,storage` after authenticating the Firebase CLI. The supplied Android JSON does not configure iOS; add `GoogleService-Info.plist` or run `flutterfire configure` before building for Apple platforms.
+Security rules are included in `firestore.rules` and `storage.rules`. Deploy them with `firebase deploy --only firestore:rules,firestore:indexes,storage` after authenticating the Firebase CLI. The password reset also needs `firebase deploy --only functions` and SMTP secrets — see `MANUAL_SETUP.md` item 0b, and item 0a for the Google sign-in fingerprints. The supplied Android JSON does not configure iOS; add `GoogleService-Info.plist` or run `flutterfire configure` before building for Apple platforms.
 
 ## Audio Cues
 

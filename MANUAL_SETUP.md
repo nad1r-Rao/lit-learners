@@ -7,6 +7,207 @@ Ordered roughly by how much they hurt.
 
 ---
 
+## 0a. Google sign-in needs enabling and fingerprints
+
+**Symptom** — "Continue with Google" opens the chooser and then fails, or the
+app reports *Google sign-in is not configured yet*, or *Google did not return
+an ID token*.
+
+**Cause** — the Google provider has never been switched on for
+`little-learner-9d2f1`, and the Android app has no OAuth clients. You can see
+this directly in `android/app/google-services.json`: `"oauth_client": []`. That
+array is empty because no SHA-1/SHA-256 fingerprint has been registered, and it
+is what the Gradle plugin turns into the `default_web_client_id` resource the
+plugin needs for an ID token.
+
+**Fix**
+
+1. Firebase console → **Authentication → Sign-in method → Google → Enable**.
+   Set a project support email and save.
+2. Get the debug fingerprints:
+
+   ```bash
+   cd android && ./gradlew signingReport
+   ```
+
+   Copy the **SHA1** and **SHA-256** from the `debug` variant. Do the same for
+   your release keystore before shipping.
+3. Firebase console → **Project settings → Your apps → Android app
+   (`com.example.little_learners`) → Add fingerprint**. Add both.
+4. **Re-download `google-services.json`** and replace
+   `android/app/google-services.json`. Confirm `oauth_client` is no longer
+   empty and contains an entry with `"client_type": 3` — that is the Web client
+   id the Android plugin uses.
+5. `flutter clean && flutter run`.
+
+If the generated resource is missing or wrong, you can pass the Web client id
+explicitly instead:
+
+```bash
+flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=<web client id>.apps.googleusercontent.com
+```
+
+**iOS** additionally needs, once `GoogleService-Info.plist` exists (see item 5):
+
+* the `REVERSED_CLIENT_ID` value from that plist added to `ios/Runner/Info.plist`
+  as a URL scheme:
+
+  ```xml
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLSchemes</key>
+      <array><string>com.googleusercontent.apps.XXXXXXXX-YYYYYYYY</string></array>
+    </dict>
+  </array>
+  ```
+
+* or `--dart-define=GOOGLE_IOS_CLIENT_ID=<ios client id>` if you prefer to keep
+  it out of the plist.
+
+Note the package name is still `com.example.little_learners`. Fingerprints are
+registered per package name, so change it *before* doing this, not after.
+
+---
+
+## 0b. Password reset by OTP needs the Cloud Functions deployed
+
+**Symptom** — the reset screen says *The password reset service is
+unreachable*, or nothing arrives after "Send code".
+
+**Cause** — the reset no longer uses Firebase's emailed link. It sends a
+six-digit code instead, and the password write itself needs the Admin SDK,
+which cannot run on a phone. The three callables live in `functions/index.js`
+and have to be deployed.
+
+**Fix**
+
+1. Upgrade the project to the **Blaze** plan. Cloud Functions v2 requires it,
+   and so does sending mail to an address outside the project.
+2. Choose how the code gets emailed. Either works; pick one.
+
+   **Option A — SMTP (default).** Set the three secrets and deploy:
+
+   ```bash
+   cd functions && npm install
+   firebase functions:secrets:set SMTP_HOST      # e.g. smtp.gmail.com
+   firebase functions:secrets:set SMTP_USER      # the sending mailbox
+   firebase functions:secrets:set SMTP_PASSWORD  # an app password, not the login password
+   firebase deploy --only functions
+   ```
+
+   For Gmail this must be an **App Password** (Google Account → Security →
+   2-Step Verification → App passwords). A normal password is rejected.
+   `SMTP_PORT` defaults to 465 and `MAIL_FROM` to a no-reply address; override
+   either with `firebase functions:config` params or by editing the defaults at
+   the top of `functions/index.js`.
+
+   **Option B — the Trigger Email extension.** Install
+   *Trigger Email from Firestore* (`firestore-send-email`) with the collection
+   set to `mail`, then deploy with `MAIL_TRANSPORT=firestore`. The functions
+   then write the message to Firestore and the extension sends it. The secrets
+   above still have to exist for deployment to succeed — set them to any
+   placeholder value if you go this route.
+
+3. Deploy the Firestore rules too (item 3). They close off
+   `passwordResetOtps` and `mail`, which the functions reach through the Admin
+   SDK; without the rules those collections would be world-readable.
+
+**Region** — the functions deploy to `us-central1`. If you change `REGION` in
+`functions/index.js`, pass the same value to the app:
+`--dart-define=FUNCTIONS_REGION=<region>`.
+
+**How the flow protects the account** — codes and the one-shot token are stored
+only as salted SHA-256 hashes, expire after 10 minutes, allow 5 wrong guesses,
+and rate-limit re-sends to one a minute. Changing the password revokes the
+account's existing refresh tokens.
+
+---
+
+## 0c. Notifications need permission on the device
+
+**Symptom** — reminders are listed in the app but the phone never buzzes.
+
+**Cause** — nothing in the console; this is a device-level permission. Android
+13+ and every iOS version require the parent to say yes.
+
+**Fix** — this is handled in the app: the reminders screen and the notification
+centre both show a banner with an **Allow notifications** button, and send a
+test notification once granted. Nothing to do in the Firebase console.
+
+Worth knowing:
+
+* Reminders are scheduled **locally on the device**, so they fire with the app
+  closed and without any server. They are rescheduled after a reboot via the
+  `RECEIVE_BOOT_COMPLETED` receiver in `AndroidManifest.xml`.
+* They are scheduled **inexactly** on purpose. Android 14 only grants
+  `SCHEDULE_EXACT_ALARM` to alarm-clock and calendar apps, so a learning nudge
+  may land a few minutes late rather than to the second.
+* If a parent revokes permission in system settings, the app notices next time
+  the reminders screen opens and shows the banner again.
+* There is **no push (FCM)** in this app — see item 0d.
+
+---
+
+## 0d. Firebase Cloud Messaging is not set up (and is not used yet)
+
+**Symptom** — none, yet. This item exists so nobody assumes push works.
+
+**Cause** — the app has no `firebase_messaging` dependency and no device
+tokens. Every notification it shows is **scheduled locally on the phone** by
+`flutter_local_notifications`. That is deliberate and it covers reminders
+properly, but it means:
+
+* Nothing can be sent to a parent **from your server or the Firebase console**.
+  There is no "send a message to all parents" button that will reach anyone.
+* A reminder only exists on the phone that created it. Sign in on a second
+  device and that device schedules nothing until the parent opens the reminders
+  screen there.
+* Any content you add later — a new module, a weekly progress digest, an
+  "your child has not played in five days" nudge — cannot be announced.
+
+**If you decide you want push**, this is what it takes. It is not a small
+change; treat it as its own piece of work.
+
+*Console / manual side*
+
+1. Firebase console → **Project settings → Cloud Messaging**. FCM is on by
+   default for new projects; confirm the **Firebase Cloud Messaging API (V1)**
+   is enabled.
+2. **iOS only:** create an **APNs authentication key** (`.p8`) in the Apple
+   Developer portal → Keys, with *Apple Push Notifications service* enabled.
+   Upload it under **Cloud Messaging → Apple app configuration**, along with
+   the Key ID and your Team ID. Push does **not** work on iOS without this, and
+   it does not work in the simulator at all — you need a real device.
+3. **iOS only:** in Xcode → Runner target → **Signing & Capabilities**, add
+   **Push Notifications** and add **Background Modes** with *Remote
+   notifications* ticked.
+4. Both platforms need item 0a's config files in place first
+   (`google-services.json`, `GoogleService-Info.plist`).
+
+*Code side, roughly*
+
+1. Add `firebase_messaging` to `pubspec.yaml`.
+2. Store each device's token against the parent, e.g.
+   `parents/{uid}/devices/{token}`, and refresh it on
+   `onTokenRefresh`. Delete the token on sign-out, or the next person to use
+   that phone gets the previous parent's notifications.
+3. Reuse the existing plumbing rather than adding a parallel one: a foreground
+   message should call `LocalNotificationService.showNow` so it looks like
+   every other notification, and write a `NotificationDelivery` record so it
+   lands in the notification centre with the rest.
+4. Add a background handler annotated `@pragma('vm:entry-point')`, and register
+   `ScheduledNotificationBootReceiver`'s sibling for FCM in the manifest.
+5. Send from a Cloud Function — the `functions/` project already exists, so a
+   scheduled function using `getMessaging().sendEachForMulticast` is the
+   natural home.
+
+Note that FCM would **replace nothing**: local scheduling stays the better
+choice for reminders, because it works offline and needs no server. Push is for
+things only the server knows about.
+
+---
+
 ## 1. Avatar photo upload fails
 
 **Symptom** — picking a photo on the child profile page shows
