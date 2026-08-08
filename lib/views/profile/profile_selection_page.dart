@@ -53,10 +53,14 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 72,
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.grape,
         foregroundColor: Colors.white,
-        flexibleSpace: const DecoratedBox(
-          decoration: BoxDecoration(
+        // A childless `DecoratedBox` collapses to zero height here — the
+        // Scaffold hands the app bar loose height constraints — which left the
+        // gradient invisible and white-on-white icons in a bare header.
+        // `Container` expands into those constraints instead.
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [AppColors.grape, AppColors.violet],
               begin: Alignment.topLeft,
@@ -71,7 +75,11 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
               'Welcome back, ${_parentLabel(parent.email)} 👋',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 2),
             const Text(
@@ -86,16 +94,28 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
         ),
         actions: [
           if (parent.canManageAdminContent)
-            IconButton(
+            IconButton.filled(
               tooltip: 'Admin dashboard',
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.honey,
+                foregroundColor: AppColors.ink,
+              ),
               onPressed: () => _openLockedAdminDashboard(context),
               icon: const Icon(Icons.admin_panel_settings_outlined),
             ),
-          IconButton(
+          const SizedBox(width: 8),
+          // Filled rather than a bare icon: a plain white glyph disappears the
+          // moment the header behind it is light.
+          IconButton.filled(
             tooltip: 'Log out',
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.coral,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => _showLogoutSheet(context),
             icon: const Icon(Icons.logout),
           ),
+          const SizedBox(width: 12),
         ],
       ),
       body: IndexedStack(
