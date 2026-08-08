@@ -49,6 +49,18 @@ service cloud.firestore {
       }
     }
 
+    // Reset codes and their one-shot tokens. The Admin SDK inside Cloud
+    // Functions bypasses these rules; nothing else may come near them.
+    match /passwordResetOtps/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Outbox for the "Trigger Email from Firestore" extension, only written
+    // server-side. Left closed here for the same reason.
+    match /mail/{document=**} {
+      allow read, write: if false;
+    }
+
     match /childProgress/{childId}/levelProgress/{levelId} {
       allow read, write: if ownsChildProfile(childId);
     }
