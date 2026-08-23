@@ -42,6 +42,19 @@ void main() {
     expect(find.text('Use a photo'), findsOneWidget);
   });
 
+  testWidgets('the form offers only the ages the content is authored for',
+      (tester) async {
+    await _pumpForm(tester);
+
+    expect(find.text('Choose an age from 1 to 4.'), findsOneWidget);
+    for (final age in ['1', '2', '3', '4']) {
+      expect(find.widgetWithText(ChoiceChip, age), findsOneWidget);
+    }
+    for (final age in ['5', '6', '7', '8']) {
+      expect(find.widgetWithText(ChoiceChip, age), findsNothing);
+    }
+  });
+
   testWidgets('a photo asks for the camera or the gallery, then for consent',
       (tester) async {
     await _pumpForm(tester);

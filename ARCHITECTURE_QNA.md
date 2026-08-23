@@ -1069,12 +1069,14 @@ with a `Timer` that clears the message when it expires, and **a fresh challenge 
 generated after every failure** so repeated guessing cannot brute-force one
 constant (`parental_lock_viewmodel.dart:56-74`).
 
-*Volunteer this before they find it:* the generator uses a **fixed seed**
-(`Random(7)`, `parental_lock_repository.dart:22`), so the sequence of sums is
-identical on every launch. Against the actual threat model — a pre-schooler who
-cannot do addition at all — that is irrelevant, and it makes the lock
-deterministic under test. Against a memorising 8-year-old sibling it is a real
-weakness, and the one-word fix is `Random()` (or `Random.secure()`).
+*Worth volunteering:* the generator used to carry a **fixed seed**
+(`Random(7)`), so every install opened on the very same sum. Against the actual
+threat model — a pre-schooler who cannot do addition at all — that was
+irrelevant, but against a memorising 8-year-old sibling it was a real weakness:
+the gate could be passed from memory without doing the arithmetic. The seed now
+comes from the platform, with an optional `seed:` argument left in for the one
+test that needs a challenge it can predict
+(`parental_lock_repository.dart:21-38`).
 
 ### Q10.3 — How is the lock reused? Show the two shapes.
 

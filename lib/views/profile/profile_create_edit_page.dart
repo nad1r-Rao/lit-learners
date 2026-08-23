@@ -17,6 +17,12 @@ import '../../viewmodels/profile_viewmodel.dart';
 import '../../widgets/app_primary_button.dart';
 import '../../widgets/child_avatar.dart';
 
+/// The ages the learning content is authored for. `AgeStageHelper` turns each
+/// one into its own stage, so anything outside this range has no content of
+/// its own to serve.
+const _minAge = 1;
+const _maxAge = 4;
+
 class ProfileCreateEditPage extends StatefulWidget {
   const ProfileCreateEditPage({
     this.args,
@@ -31,7 +37,7 @@ class ProfileCreateEditPage extends StatefulWidget {
 
 class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
   final _nameController = TextEditingController();
-  int _age = 3;
+  int _age = _minAge;
   String _avatarAsset = AvatarPresets.fallback.id;
   bool _leaderboardOptIn = false;
   String _displayPreference = 'alias';
@@ -108,7 +114,7 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
             const _SectionHeading(
               icon: Icons.cake_rounded,
               label: 'Age',
-              helper: 'Choose an age from 3 to 8.',
+              helper: 'Choose an age from $_minAge to $_maxAge.',
             ),
             const SizedBox(height: 10),
             _AgeSelector(
@@ -203,7 +209,9 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
 
   void _seedFields(ChildProfile profile) {
     _nameController.text = profile.name;
-    _age = profile.age;
+    // Clamped: a profile saved before the age range narrowed to 1-4 would
+    // otherwise land on no chip at all and fail validation on save.
+    _age = profile.age.clamp(_minAge, _maxAge);
     _avatarAsset = profile.avatarAsset;
     _leaderboardOptIn = profile.leaderboardOptIn;
     _displayPreference = profile.displayPreference;
@@ -640,7 +648,7 @@ class _AgeSelector extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (var option = 3; option <= 8; option++)
+        for (var option = _minAge; option <= _maxAge; option++)
           ChoiceChip(
             label: Text('$option'),
             selected: age == option,

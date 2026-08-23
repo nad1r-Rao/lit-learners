@@ -19,7 +19,13 @@ abstract class ParentalLockRepository {
 }
 
 class InMemoryParentalLockRepository implements ParentalLockRepository {
-  final Random _random = Random(7);
+  /// Seeded only by a test that needs a challenge it can predict. In the app
+  /// the seed is left to the platform: a fixed one made `createChallenge`
+  /// deterministic, so every install opened on the very same sum and the
+  /// gate could be passed from memory without doing the arithmetic.
+  InMemoryParentalLockRepository({int? seed}) : _random = Random(seed);
+
+  final Random _random;
 
   @override
   Future<LockChallenge> createChallenge() async {
