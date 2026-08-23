@@ -53,7 +53,7 @@ void main() {
     expect(find.text('Forgot password?'), findsOneWidget);
   });
 
-  testWidgets('ForgotPasswordPage walks email, code and new password',
+  testWidgets('ForgotPasswordPage asks Firebase to mail a reset link',
       (tester) async {
     final repository = InMemoryAuthRepository();
     await repository.signUp(email: 'parent@example.com', password: 'Old1!aaa');
@@ -61,40 +61,29 @@ void main() {
       tester,
       const ForgotPasswordPage(),
       repository: repository,
-      // Taller than the other auth pages: the last step shows two password
-      // fields plus the rules line, and every control has to be tappable.
-      size: const Size(390, 844),
     );
 
     expect(find.text('RESET'), findsOneWidget);
+    expect(find.text('Send reset link'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'parent@example.com');
-    await _tap(tester, 'Send code');
+    await _tap(tester, 'Send reset link');
 
-    expect(find.text('Verify code'), findsOneWidget);
+    expect(repository.passwordResetEmails, ['parent@example.com']);
+    // The screen confirms in place rather than moving on: the rest of the
+    // flow happens in the parent's mail client.
+    expect(find.textContaining('Reset link sent'), findsOneWidget);
+    expect(find.text('Send it again'), findsOneWidget);
+  });
 
-    await tester.enterText(
-      find.byType(TextField),
-      repository.lastOtpFor('parent@example.com')!,
-    );
-    await _tap(tester, 'Verify code');
+  testWidgets('ForgotPasswordPage reports an unknown email', (tester) async {
+    await _pumpAuthPage(tester, const ForgotPasswordPage());
 
-    expect(find.text('Save new password'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'nobody@example.com');
+    await _tap(tester, 'Send reset link');
 
-    await tester.enterText(find.byType(TextField).first, 'Brand1New!');
-    await tester.enterText(find.byType(TextField).last, 'Brand1New!');
-    await _tap(tester, 'Save new password');
-
-    expect(find.text('Back to sign in'), findsOneWidget);
-
-    // The point of the whole flow: the account really does take the new
-    // password now.
-    final signedIn = await repository.signIn(
-      email: 'parent@example.com',
-      password: 'Brand1New!',
-    );
-
-    expect(signedIn.email, 'parent@example.com');
+    expect(find.text('No account found for this email.'), findsOneWidget);
+    expect(find.text('Send reset link'), findsOneWidget);
   });
 }
 

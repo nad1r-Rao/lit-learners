@@ -11,25 +11,6 @@ enum AuthFlowStatus {
   unauthenticated,
 }
 
-/// Digits in the emailed reset code. Mirrors `OTP_LENGTH` in
-/// `functions/index.js`; changing one without the other breaks the flow.
-const passwordResetOtpLength = 6;
-
-/// Where the parent is in the three-step OTP reset.
-enum PasswordResetStep {
-  /// Typing the email the code should go to.
-  requestCode,
-
-  /// Typing the six digits that arrived by email.
-  verifyCode,
-
-  /// Choosing the password that replaces the old one.
-  choosePassword,
-
-  /// Stored. The login screen is the only way forward.
-  done,
-}
-
 class AuthViewModel extends ChangeNotifier {
   AuthViewModel(this._authRepository);
 
@@ -39,9 +20,6 @@ class AuthViewModel extends ChangeNotifier {
   AuthFlowStatus _status = AuthFlowStatus.idle;
   String? _errorMessage;
   String? _infoMessage;
-  PasswordResetStep _resetStep = PasswordResetStep.requestCode;
-  String? _resetEmail;
-  String? _resetToken;
 
   ParentAccount? get parent => _parent;
   AuthFlowStatus get status => _status;
@@ -49,10 +27,6 @@ class AuthViewModel extends ChangeNotifier {
   String? get infoMessage => _infoMessage;
   bool get isLoading => _status == AuthFlowStatus.loading;
   bool get isAuthenticated => _parent != null;
-  PasswordResetStep get passwordResetStep => _resetStep;
-
-  /// The address the current code was sent to, for showing back to the parent.
-  String? get passwordResetEmail => _resetEmail;
 
   Future<void> loadCurrentParent() async {
     _status = AuthFlowStatus.loading;
@@ -120,134 +94,25 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // --- OTP password reset -------------------------------------------------
-
-  /// Sends a six-digit code to [email] and moves the flow to [
-  /// PasswordResetStep.verifyCode].
-  Future<bool> requestPasswordResetOtp(String email) async {
+  /// Mails a reset link to [email]. Firebase takes it from there — the link
+  /// opens Firebase's own page, so the app never handles the new password.
+  Future<bool> sendPasswordReset(String email) async {
     final emailError = Validators.email(email);
     if (emailError != null) {
       _setError(emailError);
       return false;
     }
 
-    return _runResetAction(
-      () async {
-        await _authRepository.requestPasswordResetOtp(email);
-        _resetEmail = email.trim().toLowerCase();
-        _resetToken = null;
-        _resetStep = PasswordResetStep.verifyCode;
-        _infoMessage = 'We sent a 6-digit code to $_resetEmail. '
-            'It expires in 10 minutes.';
-      },
-    );
-  }
-
-  /// Re-sends a code for the email already entered, without leaving the
-  /// verify step.
-  Future<bool> resendPasswordResetOtp() async {
-    final email = _resetEmail;
-    if (email == null) {
-      _setError('Enter your email first.');
-      return false;
-    }
-
-    return _runResetAction(() async {
-      await _authRepository.requestPasswordResetOtp(email);
-      _resetToken = null;
-      _infoMessage = 'A fresh code is on its way to $email.';
-    });
-  }
-
-  /// Checks [otp] and, when it matches, unlocks the new-password step.
-  Future<bool> verifyPasswordResetOtp(String otp) async {
-    final email = _resetEmail;
-    if (email == null) {
-      _setError('Enter your email first.');
-      return false;
-    }
-
-    final trimmed = otp.trim();
-    if (trimmed.length != passwordResetOtpLength ||
-        int.tryParse(trimmed) == null) {
-      _setError('Enter the $passwordResetOtpLength-digit code from the email.');
-      return false;
-    }
-
-    return _runResetAction(() async {
-      _resetToken = await _authRepository.verifyPasswordResetOtp(
-        email: email,
-        otp: trimmed,
-      );
-      _resetStep = PasswordResetStep.choosePassword;
-      _infoMessage = 'Code confirmed. Choose a new password.';
-    });
-  }
-
-  /// Stores [newPassword] against the account the code was sent to.
-  Future<bool> confirmPasswordReset({
-    required String newPassword,
-    required String confirmPassword,
-  }) async {
-    final email = _resetEmail;
-    final token = _resetToken;
-    if (email == null || token == null) {
-      _setError('Verify the code again before continuing.');
-      return false;
-    }
-
-    final passwordError = Validators.password(newPassword);
-    if (passwordError != null) {
-      _setError(passwordError);
-      return false;
-    }
-    if (newPassword != confirmPassword) {
-      _setError('Both passwords must match.');
-      return false;
-    }
-
-    return _runResetAction(() async {
-      await _authRepository.confirmPasswordReset(
-        email: email,
-        resetToken: token,
-        newPassword: newPassword,
-      );
-      _resetToken = null;
-      _resetStep = PasswordResetStep.done;
-      _infoMessage = 'Password updated. Sign in with your new password.';
-    });
-  }
-
-  /// Drops any half-finished reset, e.g. when the parent leaves the screen.
-  void resetPasswordFlow() {
-    _resetStep = PasswordResetStep.requestCode;
-    _resetEmail = null;
-    _resetToken = null;
-    _errorMessage = null;
-    _infoMessage = null;
-    _status = _parent == null
-        ? AuthFlowStatus.unauthenticated
-        : AuthFlowStatus.authenticated;
-    notifyListeners();
-  }
-
-  /// Steps back to the email field so a typo can be corrected.
-  void editPasswordResetEmail() {
-    _resetStep = PasswordResetStep.requestCode;
-    _resetToken = null;
-    _errorMessage = null;
-    _infoMessage = null;
-    notifyListeners();
-  }
-
-  Future<bool> _runResetAction(Future<void> Function() action) async {
     _status = AuthFlowStatus.loading;
     _errorMessage = null;
     _infoMessage = null;
     notifyListeners();
 
+    final normalizedEmail = email.trim().toLowerCase();
     try {
-      await action();
+      await _authRepository.sendPasswordReset(normalizedEmail);
+      _infoMessage = 'Reset link sent to $normalizedEmail. Open it to choose '
+          'a new password, and check your spam folder if it has not arrived.';
       _status = _parent == null
           ? AuthFlowStatus.unauthenticated
           : AuthFlowStatus.authenticated;
@@ -259,15 +124,22 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+  /// Clears any message left over from an earlier visit to the reset screen.
+  void resetPasswordFlow() {
+    _errorMessage = null;
+    _infoMessage = null;
+    _status = _parent == null
+        ? AuthFlowStatus.unauthenticated
+        : AuthFlowStatus.authenticated;
+    notifyListeners();
+  }
+
   Future<void> signOut() async {
     await _authRepository.signOut();
     _parent = null;
     _status = AuthFlowStatus.unauthenticated;
     _errorMessage = null;
     _infoMessage = null;
-    _resetStep = PasswordResetStep.requestCode;
-    _resetEmail = null;
-    _resetToken = null;
     notifyListeners();
   }
 

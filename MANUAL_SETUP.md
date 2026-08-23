@@ -70,57 +70,39 @@ registered per package name, so change it *before* doing this, not after.
 
 ---
 
-## 0b. Password reset by OTP needs the Cloud Functions deployed
+## 0b. Password reset emails need the template configured
 
-**Symptom** — the reset screen says *The password reset service is
-unreachable*, or nothing arrives after "Send code".
+**Symptom** — "Send reset link" reports success but no email arrives.
 
-**Cause** — the reset no longer uses Firebase's emailed link. It sends a
-six-digit code instead, and the password write itself needs the Admin SDK,
-which cannot run on a phone. The three callables live in `functions/index.js`
-and have to be deployed.
+**Cause** — the app calls `FirebaseAuth.sendPasswordResetEmail`, so Firebase
+owns the whole flow: it composes the mail, hosts the page the link opens, and
+writes the new password. Nothing about that is in this repo. When the mail does
+not turn up it is almost always one of: the template was never reviewed, the
+sender domain is unverified, or the mail landed in spam.
 
 **Fix**
 
-1. Upgrade the project to the **Blaze** plan. Cloud Functions v2 requires it,
-   and so does sending mail to an address outside the project.
-2. Choose how the code gets emailed. Either works; pick one.
+1. Firebase console → **Authentication → Templates → Password reset**. Open it
+   once and save, even unchanged — this is also where you set the sender name,
+   the reply-to address and the language.
+2. Check the **From** address. The default `noreply@<project>.firebaseapp.com`
+   works but is a common spam-filter casualty. To send from your own domain,
+   use **Customise domain** and complete the DNS records it asks for.
+3. Firebase console → **Authentication → Settings → Authorised domains**. The
+   domain in the action link must be listed, or the link opens on an error page.
+4. Test with a real inbox and **check the spam folder** before concluding it is
+   broken.
 
-   **Option A — SMTP (default).** Set the three secrets and deploy:
+**Rate limits** — Firebase throttles reset mail per address and per project.
+Repeated taps during testing will start failing with `too-many-requests`; that
+is the quota, not a bug.
 
-   ```bash
-   cd functions && npm install
-   firebase functions:secrets:set SMTP_HOST      # e.g. smtp.gmail.com
-   firebase functions:secrets:set SMTP_USER      # the sending mailbox
-   firebase functions:secrets:set SMTP_PASSWORD  # an app password, not the login password
-   firebase deploy --only functions
-   ```
-
-   For Gmail this must be an **App Password** (Google Account → Security →
-   2-Step Verification → App passwords). A normal password is rejected.
-   `SMTP_PORT` defaults to 465 and `MAIL_FROM` to a no-reply address; override
-   either with `firebase functions:config` params or by editing the defaults at
-   the top of `functions/index.js`.
-
-   **Option B — the Trigger Email extension.** Install
-   *Trigger Email from Firestore* (`firestore-send-email`) with the collection
-   set to `mail`, then deploy with `MAIL_TRANSPORT=firestore`. The functions
-   then write the message to Firestore and the extension sends it. The secrets
-   above still have to exist for deployment to succeed — set them to any
-   placeholder value if you go this route.
-
-3. Deploy the Firestore rules too (item 3). They close off
-   `passwordResetOtps` and `mail`, which the functions reach through the Admin
-   SDK; without the rules those collections would be world-readable.
-
-**Region** — the functions deploy to `us-central1`. If you change `REGION` in
-`functions/index.js`, pass the same value to the app:
-`--dart-define=FUNCTIONS_REGION=<region>`.
-
-**How the flow protects the account** — codes and the one-shot token are stored
-only as salted SHA-256 hashes, expire after 10 minutes, allow 5 wrong guesses,
-and rate-limit re-sends to one a minute. Changing the password revokes the
-account's existing refresh tokens.
+**Note on account enumeration** — the app reports "No account found for this
+email" when the address has no account, because `sendPasswordResetEmail` throws
+`user-not-found`. That is friendly but it does tell an attacker which addresses
+are registered. If you would rather not leak that, turn on **Email enumeration
+protection** in Authentication → Settings, and change the app to show the same
+confirmation either way.
 
 ---
 
@@ -198,9 +180,10 @@ change; treat it as its own piece of work.
    lands in the notification centre with the rest.
 4. Add a background handler annotated `@pragma('vm:entry-point')`, and register
    `ScheduledNotificationBootReceiver`'s sibling for FCM in the manifest.
-5. Send from a Cloud Function — the `functions/` project already exists, so a
-   scheduled function using `getMessaging().sendEachForMulticast` is the
-   natural home.
+5. Send from a scheduled Cloud Function using
+   `getMessaging().sendEachForMulticast`. There is no `functions/` project in
+   this repo yet, so that would be set up from scratch with `firebase init
+   functions`.
 
 Note that FCM would **replace nothing**: local scheduling stays the better
 choice for reminders, because it works offline and needs no server. Push is for

@@ -18,11 +18,4 @@ class AppConfig {
   static const googleIosClientId = String.fromEnvironment(
     'GOOGLE_IOS_CLIENT_ID',
   );
-
-  /// Region the password-reset Cloud Functions are deployed to. Must match the
-  /// region in `functions/index.js`.
-  static const functionsRegion = String.fromEnvironment(
-    'FUNCTIONS_REGION',
-    defaultValue: 'us-central1',
-  );
 }

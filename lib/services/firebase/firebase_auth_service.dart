@@ -21,6 +21,8 @@ abstract class ParentAuthRemoteDataSource {
   /// Returns null when the parent dismisses the Google account chooser.
   Future<ParentAccount?> signInWithGoogle();
 
+  Future<void> sendPasswordReset(String email);
+
   Future<void> signOut();
 }
 
@@ -84,6 +86,15 @@ class FirebaseAuthService implements ParentAuthRemoteDataSource {
         GoogleAuthProvider.credential(idToken: idToken),
       );
       return _toParentAccount(credential.user);
+    } on FirebaseAuthException catch (error) {
+      throw AuthException(firebaseAuthMessageFor(error));
+    }
+  }
+
+  @override
+  Future<void> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim().toLowerCase());
     } on FirebaseAuthException catch (error) {
       throw AuthException(firebaseAuthMessageFor(error));
     }

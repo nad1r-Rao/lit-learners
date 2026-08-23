@@ -37,7 +37,6 @@ import 'services/firebase/firestore_leaderboard_remote_data_source.dart';
 import 'services/firebase/firestore_notification_delivery_remote_data_source.dart';
 import 'services/firebase/firestore_progress_remote_data_source.dart';
 import 'services/firebase/parent_firestore_service.dart';
-import 'services/firebase/password_reset_service.dart';
 import 'services/local/child_profile_dao.dart';
 import 'services/local/content_dao.dart';
 import 'services/local/db_helper.dart';
@@ -85,7 +84,6 @@ final AuthRepository _authRepository = _firebaseEnabled
     ? FirebaseAuthRepository(
         authService: FirebaseAuthService(),
         parentRemoteDataSource: _parentRemoteDataSource!,
-        passwordResetRemoteDataSource: FunctionsPasswordResetService(),
       )
     : InMemoryAuthRepository();
 final OnboardingRepository _onboardingRepository = _firebaseEnabled

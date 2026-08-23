@@ -6,7 +6,6 @@ import 'package:little_learners/repositories/auth_repository.dart';
 import 'package:little_learners/repositories/firebase_auth_repository.dart';
 import 'package:little_learners/services/firebase/firebase_auth_service.dart';
 import 'package:little_learners/services/firebase/parent_firestore_service.dart';
-import 'package:little_learners/services/firebase/password_reset_service.dart';
 
 void main() {
   group('FirebaseAuthRepository', () {
@@ -18,7 +17,6 @@ void main() {
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: parentRemoteDataSource,
-        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
       );
 
       final created = await repository.signUp(
@@ -40,7 +38,6 @@ void main() {
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: parentRemoteDataSource,
-        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
       );
 
       final signedIn = await repository.signIn(
@@ -59,7 +56,6 @@ void main() {
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: parentRemoteDataSource,
-        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
       );
 
       final currentParent = await repository.currentParent();
@@ -76,7 +72,6 @@ void main() {
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: parentRemoteDataSource,
-        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
       );
 
       final signedIn = await repository.signInWithGoogle();
@@ -91,7 +86,6 @@ void main() {
       final repository = FirebaseAuthRepository(
         authService: _FakeParentAuthRemoteDataSource(),
         parentRemoteDataSource: _FakeParentRemoteDataSource(),
-        passwordResetRemoteDataSource: _FakePasswordResetRemoteDataSource(),
       );
 
       expect(
@@ -100,30 +94,17 @@ void main() {
       );
     });
 
-    test('walks the OTP reset through to a stored password', () async {
+    test('delegates password reset and sign out', () async {
       final authService = _FakeParentAuthRemoteDataSource();
-      final passwordReset = _FakePasswordResetRemoteDataSource();
       final repository = FirebaseAuthRepository(
         authService: authService,
         parentRemoteDataSource: _FakeParentRemoteDataSource(),
-        passwordResetRemoteDataSource: passwordReset,
       );
 
-      await repository.requestPasswordResetOtp('parent@example.com');
-      final token = await repository.verifyPasswordResetOtp(
-        email: 'parent@example.com',
-        otp: '123456',
-      );
-      await repository.confirmPasswordReset(
-        email: 'parent@example.com',
-        resetToken: token,
-        newPassword: 'Stronger1!',
-      );
+      await repository.sendPasswordReset('parent@example.com');
       await repository.signOut();
 
-      expect(passwordReset.requestedEmail, 'parent@example.com');
-      expect(passwordReset.verifiedOtp, '123456');
-      expect(passwordReset.storedPassword, 'Stronger1!');
+      expect(authService.passwordResetEmail, 'parent@example.com');
       expect(authService.didSignOut, isTrue);
     });
 
@@ -163,6 +144,7 @@ class _FakeParentAuthRemoteDataSource implements ParentAuthRemoteDataSource {
   final ParentAccount? _signInParent;
   final ParentAccount? _signUpParent;
   final ParentAccount? _googleParent;
+  String? passwordResetEmail;
   bool didSignOut = false;
 
   @override
@@ -186,6 +168,11 @@ class _FakeParentAuthRemoteDataSource implements ParentAuthRemoteDataSource {
 
   @override
   Future<ParentAccount?> signInWithGoogle() async => _googleParent;
+
+  @override
+  Future<void> sendPasswordReset(String email) async {
+    passwordResetEmail = email;
+  }
 
   @override
   Future<void> signOut() async {
@@ -234,35 +221,3 @@ class _FakeParentRemoteDataSource implements ParentRemoteDataSource {
   }
 }
 
-class _FakePasswordResetRemoteDataSource
-    implements PasswordResetRemoteDataSource {
-  String? requestedEmail;
-  String? verifiedOtp;
-  String? storedPassword;
-
-  @override
-  Future<void> requestOtp(String email) async {
-    requestedEmail = email;
-  }
-
-  @override
-  Future<String> verifyOtp({
-    required String email,
-    required String otp,
-  }) async {
-    verifiedOtp = otp;
-    return 'reset-token';
-  }
-
-  @override
-  Future<void> confirmReset({
-    required String email,
-    required String resetToken,
-    required String newPassword,
-  }) async {
-    if (resetToken != 'reset-token') {
-      throw const AuthException('Verify the code again before continuing.');
-    }
-    storedPassword = newPassword;
-  }
-}

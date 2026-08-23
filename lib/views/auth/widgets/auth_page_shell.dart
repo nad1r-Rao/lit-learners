@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/constants/app_colors.dart';
 
@@ -149,8 +148,6 @@ class AuthWoodenTextField extends StatelessWidget {
     this.obscureText = false,
     this.autocorrect = true,
     this.enableSuggestions = true,
-    this.maxLength,
-    this.inputFormatters,
     this.onSubmitted,
     super.key,
   });
@@ -166,8 +163,6 @@ class AuthWoodenTextField extends StatelessWidget {
   final bool obscureText;
   final bool autocorrect;
   final bool enableSuggestions;
-  final int? maxLength;
-  final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onSubmitted;
 
   @override
@@ -200,8 +195,6 @@ class AuthWoodenTextField extends StatelessWidget {
             obscureText: obscureText,
             autocorrect: autocorrect,
             enableSuggestions: enableSuggestions,
-            maxLength: maxLength,
-            inputFormatters: inputFormatters,
             onSubmitted: onSubmitted,
             cursorColor: AppColors.coral,
             style: const TextStyle(
@@ -213,8 +206,6 @@ class AuthWoodenTextField extends StatelessWidget {
               labelText: label,
               hintText: hint,
               filled: false,
-              // The wooden field has no room for a counter under the border.
-              counterText: '',
               labelStyle: const TextStyle(
                 color: _woodDark,
                 fontFamily: 'Fredoka',
