@@ -12,6 +12,7 @@ Little Learners is a Flutter e-learning app for toddlers ages 1 to 4. This repos
 - SQLite-ready child profile cache with `isSynced` tracking.
 - Sync service foundation for profile upserts and delete outbox items.
 - Content cache foundation for bundled learning modules and Math levels.
+- Navigation runs child profile ▸ modules ▸ levels ▸ sequential content. Each level covers one **portion** of its module (English `A – F`, then `G – L`), the levels screen names that portion, a level unlocks only once the previous one is finished, and inside a level the child meets A before B before C.
 - Interactive Math counting/matching activity flow.
 - Cached level download state for unlocked later levels.
 - Child profile selection.

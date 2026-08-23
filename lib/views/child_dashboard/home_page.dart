@@ -3,14 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/routing/route_names.dart';
-import '../../core/utils/age_stage_helper.dart';
 import '../../models/child_profile.dart';
-import '../../models/koala_guide_message.dart';
 import '../../models/learning_module.dart';
 import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../widgets/child_avatar.dart';
-import '../../widgets/koala_guide.dart';
 import '../../widgets/module_card.dart';
 
 class HomePage extends StatelessWidget {
@@ -41,15 +38,6 @@ class HomePage extends StatelessWidget {
                 session.clear();
                 Navigator.of(context).pushReplacementNamed(RouteNames.profiles);
               },
-            ),
-            const SizedBox(height: 16),
-            ContextualKoalaGuide(
-              trigger: KoalaGuideTrigger.dashboardWelcome,
-              audience: KoalaGuideAudience.child,
-              stage: AgeStageHelper.stageForAge(child.age),
-              fallbackMessage:
-                  'Choose a module. Short lessons work best for age '
-                  '${child.age}.',
             ),
             const SizedBox(height: 20),
             _ModuleSectionHeading(count: learning.modules.length),

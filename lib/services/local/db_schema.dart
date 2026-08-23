@@ -2,7 +2,7 @@ class LocalDbSchema {
   const LocalDbSchema._();
 
   static const databaseName = 'little_learners.db';
-  static const version = 5;
+  static const version = 6;
 
   static const appMeta = 'app_meta';
   static const childProfiles = 'child_profiles';
@@ -65,6 +65,7 @@ CREATE TABLE $levels (
   levelType TEXT NOT NULL,
   passingScore INTEGER NOT NULL,
   isBundled INTEGER NOT NULL,
+  portionLabel TEXT,
   isDownloaded INTEGER NOT NULL DEFAULT 0
 )
 ''';
@@ -187,5 +188,11 @@ CREATE TABLE $appMeta (
 
   static const version5Statements = [
     createAppMetaTable,
+  ];
+
+  /// Levels gained the portion they cover (`A – F`). Nullable, so devices
+  /// upgrading keep their rows until the bundle is reinstalled.
+  static const version6Statements = [
+    'ALTER TABLE $levels ADD COLUMN portionLabel TEXT',
   ];
 }

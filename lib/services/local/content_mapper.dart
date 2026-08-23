@@ -49,6 +49,7 @@ class ContentMapper {
       type: LevelType.values.byName(levelMap['levelType']! as String),
       passingScore: levelMap['passingScore']! as int,
       isBundled: (levelMap['isBundled']! as int) == 1,
+      portionLabel: levelMap['portionLabel'] as String?,
       isDownloaded: (levelMap['isDownloaded']! as int) == 1,
       contentItems: contentItems,
       quizQuestions: quizQuestions,
@@ -67,6 +68,7 @@ class ContentMapper {
       'levelType': level.type.name,
       'passingScore': level.passingScore,
       'isBundled': level.isBundled ? 1 : 0,
+      'portionLabel': level.portionLabel,
       'isDownloaded': level.isAvailableOffline ? 1 : 0,
     };
   }

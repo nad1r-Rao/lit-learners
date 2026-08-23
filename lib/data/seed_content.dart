@@ -12,7 +12,7 @@ import '../models/video_lesson.dart';
 /// progress and downloaded flags intact.
 ///
 /// **Bump this whenever you add, remove or edit anything in this file.**
-const bundledContentRevision = '2026-08-07-parent-marked-canvas';
+const bundledContentRevision = '2026-08-23-portion-ladder';
 
 const seedModules = <LearningModule>[
   LearningModule(
@@ -91,9 +91,23 @@ const seedModules = <LearningModule>[
   ),
 ];
 
-const seedLevels = <LearningLevel>[
+/// Every level the app ships with.
+///
+/// A module is a ladder of levels, each covering one **portion** of that
+/// module's sequence — `A – F`, then `G – L`, and so on. Inside a level the
+/// content items are walked in order, so a child meets A before B before C.
+/// The same portions repeat at every age stage; what changes is the activity
+/// and the wording, so a birthday moves a child up to a harder pass over
+/// letters they already recognise.
+final seedLevels = <LearningLevel>[
+  ..._englishAlphabetLevels(),
+  ..._authoredLevels,
+];
+
+const _authoredLevels = <LearningLevel>[
   LearningLevel(
     id: 'math-stage1-1',
+    portionLabel: '1 – 2',
     moduleId: 'math',
     stage: 1,
     levelNumber: 1,
@@ -119,6 +133,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'math-stage3-1',
+    portionLabel: '1 – 5',
     moduleId: 'math',
     stage: 3,
     levelNumber: 1,
@@ -193,261 +208,8 @@ const seedLevels = <LearningLevel>[
     ],
   ),
   LearningLevel(
-    id: 'english-stage1-1',
-    moduleId: 'english',
-    stage: 1,
-    levelNumber: 1,
-    title: 'Meet A',
-    subtitle: 'Look, listen, and say the first letter.',
-    type: LevelType.flashcards,
-    passingScore: 60,
-    isBundled: true,
-    contentItems: [
-      ContentItem(
-        title: 'A',
-        prompt: 'Listen for A. Open your mouth and say ah.',
-        displayText: 'A',
-        visualLabel: 'Letter A',
-        audioCueKey: 'english_letter_a',
-      ),
-      ContentItem(
-        title: 'Apple',
-        prompt: 'A is for apple. Say apple.',
-        displayText: 'Apple',
-        visualLabel: 'Apple word card',
-        audioCueKey: 'english_apple',
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage2-1',
-    moduleId: 'english',
-    stage: 2,
-    levelNumber: 1,
-    title: 'A and B',
-    subtitle: 'Hear two letter sounds and copy them.',
-    type: LevelType.flashcards,
-    passingScore: 65,
-    isBundled: true,
-    contentItems: [
-      ContentItem(
-        title: 'A',
-        prompt: 'A says ah, like apple.',
-        displayText: 'A',
-        visualLabel: 'Letter A',
-        audioCueKey: 'english_letter_a',
-      ),
-      ContentItem(
-        title: 'B',
-        prompt: 'B says buh, like ball.',
-        displayText: 'B',
-        visualLabel: 'Letter B',
-        audioCueKey: 'english_letter_b',
-      ),
-      ContentItem(
-        title: 'Ball',
-        prompt: 'B is for ball. Say ball.',
-        displayText: 'Ball',
-        visualLabel: 'Ball word card',
-        audioCueKey: 'english_ball',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-stage2-q1',
-        prompt: 'Which letter starts ball?',
-        options: ['A', 'B', 'C'],
-        correctIndex: 1,
-        explanation: 'Ball starts with B.',
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage3-1',
-    moduleId: 'english',
-    stage: 3,
-    levelNumber: 1,
-    title: 'A B C Starters',
-    subtitle: 'Match first letters with familiar words.',
-    type: LevelType.flashcards,
-    passingScore: 70,
-    isBundled: true,
-    contentItems: [
-      ContentItem(
-        title: 'A',
-        prompt: 'A is for apple.',
-        displayText: 'A',
-        visualLabel: 'Apple',
-        audioCueKey: 'english_letter_a',
-      ),
-      ContentItem(
-        title: 'B',
-        prompt: 'B is for ball.',
-        displayText: 'B',
-        visualLabel: 'Ball',
-        audioCueKey: 'english_letter_b',
-      ),
-      ContentItem(
-        title: 'C',
-        prompt: 'C is for cat.',
-        displayText: 'C',
-        visualLabel: 'Cat',
-        audioCueKey: 'english_letter_c',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-abc-q1',
-        prompt: 'Which word starts with A?',
-        options: ['Apple', 'Ball', 'Cat'],
-        correctIndex: 0,
-        explanation: 'Apple starts with A.',
-      ),
-      QuizQuestion(
-        id: 'english-abc-q2',
-        prompt: 'Cat starts with which letter?',
-        options: ['B', 'C', 'A'],
-        correctIndex: 1,
-        explanation: 'Cat starts with C.',
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage3-2',
-    moduleId: 'english',
-    stage: 3,
-    levelNumber: 2,
-    title: 'Sound Match',
-    subtitle: 'Choose the word that begins with each sound.',
-    type: LevelType.matching,
-    passingScore: 70,
-    isBundled: false,
-    contentItems: [
-      ContentItem(
-        title: 'Apple',
-        prompt: 'Pick the word that begins with A.',
-        displayText: 'A',
-        visualLabel: 'A - Apple',
-        audioCueKey: 'english_apple',
-      ),
-      ContentItem(
-        title: 'Ball',
-        prompt: 'Pick the word that begins with B.',
-        displayText: 'B',
-        visualLabel: 'B - Ball',
-        audioCueKey: 'english_ball',
-      ),
-      ContentItem(
-        title: 'Cat',
-        prompt: 'Pick the word that begins with C.',
-        displayText: 'C',
-        visualLabel: 'C - Cat',
-        audioCueKey: 'english_cat',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-match-q1',
-        prompt: 'Which word begins with C?',
-        options: ['Apple', 'Ball', 'Cat'],
-        correctIndex: 2,
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage4-1',
-    moduleId: 'english',
-    stage: 4,
-    levelNumber: 1,
-    title: 'Simple Words',
-    subtitle: 'Blend sounds into short, friendly words.',
-    type: LevelType.matching,
-    passingScore: 75,
-    isBundled: true,
-    contentItems: [
-      ContentItem(
-        title: 'Cat',
-        prompt: 'Blend c-a-t. Say cat.',
-        displayText: 'Cat',
-        visualLabel: 'Cat word card',
-        audioCueKey: 'english_cat',
-      ),
-      ContentItem(
-        title: 'Sun',
-        prompt: 'Blend s-u-n. Say sun.',
-        displayText: 'Sun',
-        visualLabel: 'Sun word card',
-        audioCueKey: 'english_sun',
-      ),
-      ContentItem(
-        title: 'Hat',
-        prompt: 'Blend h-a-t. Say hat.',
-        displayText: 'Hat',
-        visualLabel: 'Hat word card',
-        audioCueKey: 'english_hat',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-simple-q1',
-        prompt: 'Which word ends with the t sound?',
-        options: ['Cat', 'Sun', 'Bee'],
-        correctIndex: 0,
-        explanation: 'Cat ends with t.',
-      ),
-      QuizQuestion(
-        id: 'english-simple-q2',
-        prompt: 'Which word starts with S?',
-        options: ['Hat', 'Sun', 'Cat'],
-        correctIndex: 1,
-        explanation: 'Sun starts with S.',
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage4-2',
-    moduleId: 'english',
-    stage: 4,
-    levelNumber: 2,
-    title: 'Rhyme Time',
-    subtitle: 'Listen for words that sound alike.',
-    type: LevelType.matching,
-    passingScore: 75,
-    isBundled: false,
-    contentItems: [
-      ContentItem(
-        title: 'Cat',
-        prompt: 'Cat rhymes with hat.',
-        displayText: 'Cat',
-        visualLabel: 'Cat and hat',
-        audioCueKey: 'english_cat',
-      ),
-      ContentItem(
-        title: 'Hat',
-        prompt: 'Hat rhymes with cat.',
-        displayText: 'Hat',
-        visualLabel: 'Hat and cat',
-        audioCueKey: 'english_hat',
-      ),
-      ContentItem(
-        title: 'Sun',
-        prompt: 'Sun rhymes with fun.',
-        displayText: 'Sun',
-        visualLabel: 'Sun and fun',
-        audioCueKey: 'english_sun',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-rhyme-q1',
-        prompt: 'Which word rhymes with cat?',
-        options: ['Hat', 'Sun', 'Ball'],
-        correctIndex: 0,
-      ),
-    ],
-  ),
-  LearningLevel(
     id: 'urdu-stage1-1',
+    portionLabel: 'ا',
     moduleId: 'urdu',
     stage: 1,
     levelNumber: 1,
@@ -475,6 +237,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'urdu-stage2-1',
+    portionLabel: 'ا – ب',
     moduleId: 'urdu',
     stage: 2,
     levelNumber: 1,
@@ -509,6 +272,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'urdu-stage3-1',
+    portionLabel: 'ا – پ',
     moduleId: 'urdu',
     stage: 3,
     levelNumber: 1,
@@ -1476,6 +1240,7 @@ const seedLevels = <LearningLevel>[
   // level score averages the tracing accuracy with the quiz result.
   LearningLevel(
     id: 'tracing-stage2-1',
+    portionLabel: 'A – C',
     moduleId: 'tracing',
     stage: 2,
     levelNumber: 1,
@@ -1510,6 +1275,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'tracing-stage2-2',
+    portionLabel: '1 – 3',
     moduleId: 'tracing',
     stage: 2,
     levelNumber: 2,
@@ -1544,6 +1310,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'tracing-stage3-1',
+    portionLabel: 'a – c',
     moduleId: 'tracing',
     stage: 3,
     levelNumber: 1,
@@ -1601,6 +1368,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'tracing-stage3-2',
+    portionLabel: '4 – 6',
     moduleId: 'tracing',
     stage: 3,
     levelNumber: 2,
@@ -1737,6 +1505,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'tracing-stage4-2',
+    portionLabel: '7 – 9',
     moduleId: 'tracing',
     stage: 4,
     levelNumber: 2,
@@ -1822,3 +1591,164 @@ const seedLevels = <LearningLevel>[
     ],
   ),
 ];
+
+// --- English alphabet ladder ------------------------------------------------
+
+/// One rung of a module's sequence: the glyph a child learns and the word that
+/// anchors it. Every word starts with its own glyph, so the same table can
+/// drive both the cards and the quiz.
+class _AlphabetEntry {
+  const _AlphabetEntry(this.glyph, this.word, this.audioCueKey);
+
+  final String glyph;
+  final String word;
+  final String audioCueKey;
+}
+
+const _englishAlphabet = <_AlphabetEntry>[
+  _AlphabetEntry('A', 'apple', 'english_letter_a'),
+  _AlphabetEntry('B', 'ball', 'english_letter_b'),
+  _AlphabetEntry('C', 'cat', 'english_letter_c'),
+  _AlphabetEntry('D', 'dog', 'english_letter_d'),
+  _AlphabetEntry('E', 'egg', 'english_letter_e'),
+  _AlphabetEntry('F', 'fish', 'english_letter_f'),
+  _AlphabetEntry('G', 'goat', 'english_letter_g'),
+  _AlphabetEntry('H', 'hat', 'english_letter_h'),
+  _AlphabetEntry('I', 'igloo', 'english_letter_i'),
+  _AlphabetEntry('J', 'jug', 'english_letter_j'),
+  _AlphabetEntry('K', 'kite', 'english_letter_k'),
+  _AlphabetEntry('L', 'leaf', 'english_letter_l'),
+  _AlphabetEntry('M', 'moon', 'english_letter_m'),
+  _AlphabetEntry('N', 'nest', 'english_letter_n'),
+  _AlphabetEntry('O', 'orange', 'english_letter_o'),
+  _AlphabetEntry('P', 'pen', 'english_letter_p'),
+  _AlphabetEntry('Q', 'queen', 'english_letter_q'),
+  _AlphabetEntry('R', 'rain', 'english_letter_r'),
+  _AlphabetEntry('S', 'sun', 'english_letter_s'),
+  _AlphabetEntry('T', 'tree', 'english_letter_t'),
+  _AlphabetEntry('U', 'umbrella', 'english_letter_u'),
+  _AlphabetEntry('V', 'van', 'english_letter_v'),
+  _AlphabetEntry('W', 'water', 'english_letter_w'),
+  // Not "box": the quiz asks which letter a word starts with, so every word
+  // here has to actually begin with its own glyph.
+  _AlphabetEntry('X', 'xylophone', 'english_letter_x'),
+  _AlphabetEntry('Y', 'yarn', 'english_letter_y'),
+  _AlphabetEntry('Z', 'zebra', 'english_letter_z'),
+];
+
+/// Where each level starts and stops in [_englishAlphabet]. Four portions cover
+/// the whole alphabet; the last one takes eight letters so nothing is left over.
+const _englishPortionBounds = <List<int>>[
+  [0, 6], // A – F
+  [6, 12], // G – L
+  [12, 18], // M – R
+  [18, 26], // S – Z
+];
+
+List<LearningLevel> _englishAlphabetLevels() {
+  final levels = <LearningLevel>[];
+
+  for (var stage = 1; stage <= 4; stage++) {
+    for (var index = 0; index < _englishPortionBounds.length; index++) {
+      final bounds = _englishPortionBounds[index];
+      final entries = _englishAlphabet.sublist(bounds.first, bounds.last);
+      final portion = '${entries.first.glyph} – ${entries.last.glyph}';
+      final levelNumber = index + 1;
+
+      levels.add(
+        LearningLevel(
+          id: 'english-stage$stage-$levelNumber',
+          moduleId: 'english',
+          stage: stage,
+          levelNumber: levelNumber,
+          title: 'Letters $portion',
+          subtitle: _englishSubtitle(stage),
+          // Older children match letters to words instead of only meeting them.
+          type: stage >= 4 ? LevelType.matching : LevelType.flashcards,
+          passingScore: 55 + stage * 5,
+          isBundled: true,
+          portionLabel: portion,
+          contentItems: [
+            for (final entry in entries)
+              ContentItem(
+                title: entry.glyph,
+                prompt: _englishPrompt(stage, entry),
+                displayText: entry.glyph,
+                visualLabel: 'Letter ${entry.glyph} with a picture of '
+                    '${entry.word}',
+                audioCueKey: entry.audioCueKey,
+              ),
+          ],
+          // Quizzes start at stage 3, matching AgeStageHelper.shouldShowQuiz.
+          quizQuestions: stage >= 3
+              ? _englishQuizQuestions(stage, levelNumber, entries)
+              : const [],
+        ),
+      );
+    }
+  }
+
+  return levels;
+}
+
+String _englishSubtitle(int stage) {
+  return switch (stage) {
+    1 => 'Look and listen to each letter.',
+    2 => 'Hear each letter and copy the sound.',
+    3 => 'Say each letter, then the word it starts.',
+    _ => 'Match every letter to a word that starts with it.',
+  };
+}
+
+String _englishPrompt(int stage, _AlphabetEntry entry) {
+  final glyph = entry.glyph;
+  return switch (stage) {
+    1 => 'This is $glyph. Look at it and listen.',
+    2 => '$glyph is for ${entry.word}. Say $glyph.',
+    3 => '$glyph is for ${entry.word}. Say the letter, then say the word.',
+    _ => '$glyph is for ${entry.word}. Can you think of another word that '
+        'starts with $glyph?',
+  };
+}
+
+/// Two questions per level, drawn from opposite ends of the portion so the
+/// quiz covers more than the letters a child saw most recently.
+List<QuizQuestion> _englishQuizQuestions(
+  int stage,
+  int levelNumber,
+  List<_AlphabetEntry> entries,
+) {
+  final asked = <_AlphabetEntry>[entries.first, entries.last];
+
+  return [
+    for (var i = 0; i < asked.length; i++)
+      _englishQuestion(
+        id: 'english-stage$stage-$levelNumber-q${i + 1}',
+        answer: asked[i],
+        entries: entries,
+        // Move the answer around so it is never always in the same slot.
+        answerSlot: i % 3,
+      ),
+  ];
+}
+
+QuizQuestion _englishQuestion({
+  required String id,
+  required _AlphabetEntry answer,
+  required List<_AlphabetEntry> entries,
+  required int answerSlot,
+}) {
+  final options = entries
+      .where((entry) => entry.glyph != answer.glyph)
+      .take(2)
+      .map((entry) => entry.glyph)
+      .toList()
+    ..insert(answerSlot, answer.glyph);
+
+  return QuizQuestion(
+    id: id,
+    prompt: 'Which letter does ${answer.word} start with?',
+    options: options,
+    correctIndex: answerSlot,
+  );
+}

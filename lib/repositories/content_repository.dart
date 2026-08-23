@@ -19,10 +19,14 @@ class CachedContentRepository implements ContentRepository {
   CachedContentRepository({
     required ContentDao contentDao,
     ContentSyncService? contentSyncService,
-    this.bundledModules = seedModules,
-    this.bundledLevels = seedLevels,
+    List<LearningModule>? bundledModules,
+    List<LearningLevel>? bundledLevels,
     this.contentRevision = bundledContentRevision,
-  })  : _contentDao = contentDao,
+  })  : bundledModules = bundledModules ?? seedModules,
+        // Not a default value: the English levels are built from a table, so
+        // `seedLevels` cannot be const any more.
+        bundledLevels = bundledLevels ?? seedLevels,
+        _contentDao = contentDao,
         _contentSyncService = contentSyncService;
 
   final ContentDao _contentDao;

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../core/routing/route_names.dart';
 import '../../core/utils/age_stage_helper.dart';
 import '../../core/utils/learning_text_direction.dart';
+import '../../core/utils/module_visuals.dart';
 import '../../models/koala_guide_message.dart';
 import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
@@ -106,6 +108,14 @@ class _ModuleLevelsPageState extends State<ModuleLevelsPage> {
                           ? CrossAxisAlignment.end
                           : CrossAxisAlignment.start,
                       children: [
+                        _PortionChip(
+                          portionLabel: level.portionLabel,
+                          stepCount: level.contentItems.length,
+                          accent: ModuleVisuals.colorForModuleId(
+                            level.moduleId,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                         Directionality(
                           textDirection: textDirection,
                           child: Text(
@@ -157,6 +167,49 @@ class _ModuleLevelsPageState extends State<ModuleLevelsPage> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+
+/// Names the slice of the module a level covers, so a parent scanning the list
+/// can see the ladder — `A – F`, then `G – L` — rather than only level numbers.
+class _PortionChip extends StatelessWidget {
+  const _PortionChip({
+    required this.portionLabel,
+    required this.stepCount,
+    required this.accent,
+  });
+
+  final String? portionLabel;
+  final int stepCount;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = stepCount == 1 ? '1 step' : '$stepCount steps';
+    // Modules that are not a sequence (Story, Drawing) carry no portion, so
+    // the chip falls back to how much there is to work through.
+    final label = portionLabel == null ? steps : '$portionLabel  ·  $steps';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.32)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Color.alphaBlend(
+            accent.withValues(alpha: 0.85),
+            AppColors.ink,
+          ),
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

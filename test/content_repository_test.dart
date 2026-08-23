@@ -243,8 +243,7 @@ void main() {
       expect(stageFourLevels.last.isAvailableOffline, isFalse);
     });
 
-    test('loads staged English phonics content with downloadable practice',
-        () async {
+    test('loads the English alphabet ladder for every stage', () async {
       final repository = CachedContentRepository(
         contentDao: InMemoryContentDao(),
         bundledModules: seedModules,
@@ -273,23 +272,28 @@ void main() {
         LearningTextDirection.forModule(englishModule),
         TextDirection.ltr,
       );
-      expect(stageOneLevels.map((level) => level.id), ['english-stage1-1']);
+
+      // Every stage walks the same four portions; only the activity changes.
       expect(
-        stageThreeLevels.map((level) => level.id),
-        ['english-stage3-1', 'english-stage3-2'],
+        stageOneLevels.map((level) => level.portionLabel),
+        ['A – F', 'G – L', 'M – R', 'S – Z'],
       );
-      expect(stageThreeLevels.first.quizQuestions, hasLength(2));
-      expect(stageThreeLevels.last.isBundled, isFalse);
-      expect(stageThreeLevels.last.isAvailableOffline, isFalse);
-      expect(stageFourLevels.map((level) => level.id), [
-        'english-stage4-1',
-        'english-stage4-2',
+      expect(
+        stageFourLevels.map((level) => level.portionLabel),
+        ['A – F', 'G – L', 'M – R', 'S – Z'],
+      );
+      expect(stageOneLevels.map((level) => level.id), [
+        'english-stage1-1',
+        'english-stage1-2',
+        'english-stage1-3',
+        'english-stage1-4',
       ]);
-      expect(stageFourLevels.first.contentItems.first.displayText, 'Cat');
-      expect(
-        stageFourLevels.first.contentItems.first.audioCueKey,
-        'english_cat',
-      );
+
+      // Quizzes only start once a child is old enough for them.
+      expect(stageOneLevels.first.quizQuestions, isEmpty);
+      expect(stageThreeLevels.first.quizQuestions, hasLength(2));
+      expect(stageFourLevels.first.type, LevelType.matching);
+      expect(stageOneLevels.first.type, LevelType.flashcards);
     });
 
     test('marks a cached level downloaded', () async {
