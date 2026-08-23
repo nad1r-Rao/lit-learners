@@ -1031,8 +1031,9 @@ The child surface is the default one. `AuthFlowRouter.routeAfterAuth` sends a
 parent who has finished onboarding to `/child/select` — faces and names only —
 and only to `/profiles/edit` first when the account has no child yet. The
 parent dashboard is never on that path: it is reached on purpose, through the
-parent-area button that the child selection screen and `HomePage` both show,
-and that button goes through `/parental-lock`.
+labelled parent-area button in the `ChildActionBar` that the child selection
+screen and `HomePage` both carry along their bottom edge, and that button goes
+through `/parental-lock`.
 
 `/child/select` stays at the bottom of the child surface's stack: opening a
 child pushes `/child/home` rather than replacing, and the two jumps that do

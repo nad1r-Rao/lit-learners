@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,8 +11,9 @@ import '../../models/learning_module.dart';
 import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../widgets/child_avatar.dart';
+import '../../widgets/child_action_bar.dart';
 import '../../widgets/module_card.dart';
-import '../profile/child_selection_page.dart';
+import '../../widgets/parent_area_button.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -24,44 +27,53 @@ class HomePage extends StatelessWidget {
     if (child == null) return const _NoProfileChosen();
 
     return Scaffold(
-      // The hero carries the greeting, so a second bar on top would only add
-      // a seam across the gradient.
-      extendBodyBehindAppBar: true,
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+        // A Column rather than a ListView: the hero and the heading stay put
+        // while only the modules move, so the child never loses sight of whose
+        // dashboard this is or what the grid below is for.
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _ChildHero(
-              child: child,
-              starsEarned: learning.totalStarsEarned,
-              levelsCompleted: learning.completedLevelCount,
-              onSwitchProfile: () {
-                session.clear();
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  RouteNames.childSelection,
-                  (route) => false,
-                );
-              },
-              onOpenParentArea: () => _openParentArea(context),
-            ),
-            const SizedBox(height: 20),
-            _ModuleSectionHeading(count: learning.modules.length),
-            const SizedBox(height: 14),
-            if (learning.isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (learning.modules.isEmpty)
-              const _NoModulesYet()
-            else
-              _ModuleGrid(
-                modules: learning.modules,
-                onOpen: (module) => _openModule(context, module),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _ChildHero(
+                child: child,
+                starsEarned: learning.totalStarsEarned,
+                levelsCompleted: learning.completedLevelCount,
               ),
+            ),
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _ModuleSectionHeading(count: learning.modules.length),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: learning.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : learning.modules.isEmpty
+                      ? const SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(16, 4, 16, 24),
+                          child: _NoModulesYet(),
+                        )
+                      : _ModuleGrid(
+                          modules: learning.modules,
+                          onOpen: (module) => _openModule(context, module),
+                        ),
+            ),
           ],
         ),
+      ),
+      bottomNavigationBar: _ChildActionBar(
+        onSwitchChild: () {
+          session.clear();
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            RouteNames.childSelection,
+            (route) => false,
+          );
+        },
+        onOpenParentArea: () => _openParentArea(context),
       ),
     );
   }
@@ -90,15 +102,11 @@ class _ChildHero extends StatelessWidget {
     required this.child,
     required this.starsEarned,
     required this.levelsCompleted,
-    required this.onSwitchProfile,
-    required this.onOpenParentArea,
   });
 
   final ChildProfile child;
   final int starsEarned;
   final int levelsCompleted;
-  final VoidCallback onSwitchProfile;
-  final VoidCallback onOpenParentArea;
 
   @override
   Widget build(BuildContext context) {
@@ -156,17 +164,6 @@ class _ChildHero extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton.filled(
-                tooltip: 'Switch profile',
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.18),
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: onSwitchProfile,
-                icon: const Icon(Icons.switch_account_rounded),
-              ),
-              const SizedBox(width: 6),
-              ParentAreaButton(onPressed: onOpenParentArea),
             ],
           ),
           const SizedBox(height: 16),
@@ -255,11 +252,69 @@ class _HeroStat extends StatelessWidget {
   }
 }
 
-class _ModuleGrid extends StatelessWidget {
+/// The two things a grown-up needs from a child screen, spelled out. They sit
+/// in the action bar rather than as icons in the hero: an unlabelled glyph
+/// beside a child's name did not read as "leave this child's dashboard".
+class _ChildActionBar extends StatelessWidget {
+  const _ChildActionBar({
+    required this.onSwitchChild,
+    required this.onOpenParentArea,
+  });
+
+  final VoidCallback onSwitchChild;
+  final VoidCallback onOpenParentArea;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChildActionBar(
+      actions: [
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.violet,
+            side: const BorderSide(color: AppColors.lilac, width: 1.6),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            textStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          onPressed: onSwitchChild,
+          icon: const Icon(Icons.switch_account_rounded, size: 20),
+          label: const Text(
+            'Switch child',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        ParentAreaButton(onPressed: onOpenParentArea),
+      ],
+    );
+  }
+}
+
+class _ModuleGrid extends StatefulWidget {
   const _ModuleGrid({required this.modules, required this.onOpen});
 
   final List<LearningModule> modules;
   final ValueChanged<LearningModule> onOpen;
+
+  @override
+  State<_ModuleGrid> createState() => _ModuleGridState();
+}
+
+class _ModuleGridState extends State<_ModuleGrid> {
+  final _scrollController = ScrollController();
+
+  /// Cards the grid has already introduced. A tile scrolled far enough out of
+  /// view is disposed and rebuilt on the way back, and replaying its arrival
+  /// then would read as a glitch rather than as a flourish.
+  final _alreadyArrived = <int>{};
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -270,24 +325,141 @@ class _ModuleGrid extends StatelessWidget {
             : constraints.maxWidth >= 500
                 ? 3
                 : 2;
+        const spacing = 14.0;
+        const padding = EdgeInsets.fromLTRB(16, 4, 16, 24);
+        final aspectRatio = columnCount == 2 ? 0.84 : 0.9;
+        final tileWidth = (constraints.maxWidth -
+                padding.horizontal -
+                spacing * (columnCount - 1)) /
+            columnCount;
+        final tileHeight = tileWidth / aspectRatio;
 
         return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: modules.length,
+          controller: _scrollController,
+          padding: padding,
+          itemCount: widget.modules.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columnCount,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: columnCount == 2 ? 0.84 : 0.9,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+            childAspectRatio: aspectRatio,
           ),
           itemBuilder: (context, index) {
-            final module = modules[index];
-            return ModuleCard(
-              module: module,
-              onTap: () => onOpen(module),
+            final module = widget.modules[index];
+            return _AnimatedModuleTile(
+              scrollController: _scrollController,
+              // Everything the tile needs to know where it sits in the scroll
+              // without measuring itself: the grid geometry is fixed here.
+              rowTop: padding.top + (index ~/ columnCount) * (tileHeight + spacing),
+              tileHeight: tileHeight,
+              viewportHeight: constraints.maxHeight,
+              index: index,
+              hasArrived: _alreadyArrived.contains(index),
+              onArrived: () => _alreadyArrived.add(index),
+              child: ModuleCard(
+                module: module,
+                onTap: () => widget.onOpen(module),
+              ),
             );
           },
+        );
+      },
+    );
+  }
+}
+
+/// Gives each card two movements: it drops into place when the grid first
+/// appears, staggered so the modules arrive one after another, and then it
+/// lifts and fades as it crosses the edges of the scroll while the child
+/// swipes.
+class _AnimatedModuleTile extends StatefulWidget {
+  const _AnimatedModuleTile({
+    required this.scrollController,
+    required this.rowTop,
+    required this.tileHeight,
+    required this.viewportHeight,
+    required this.index,
+    required this.hasArrived,
+    required this.onArrived,
+    required this.child,
+  });
+
+  final ScrollController scrollController;
+  final double rowTop;
+  final double tileHeight;
+  final double viewportHeight;
+  final int index;
+  final bool hasArrived;
+  final VoidCallback onArrived;
+  final Widget child;
+
+  @override
+  State<_AnimatedModuleTile> createState() => _AnimatedModuleTileState();
+}
+
+class _AnimatedModuleTileState extends State<_AnimatedModuleTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+  Timer? _stagger;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.hasArrived) {
+      _entrance.value = 1;
+      return;
+    }
+    // Capped so a long list never leaves the last card waiting seconds.
+    final delay = Duration(milliseconds: 70 * (widget.index % 6));
+    _stagger = Timer(delay, () {
+      if (!mounted) return;
+      widget.onArrived();
+      _entrance.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _stagger?.cancel();
+    _entrance.dispose();
+    super.dispose();
+  }
+
+  /// 1 while the card sits well inside the viewport, easing to 0 as it passes
+  /// either edge.
+  double _scrollProgress() {
+    if (!widget.scrollController.hasClients) return 1;
+    final viewTop = widget.scrollController.offset;
+    final viewBottom = viewTop + widget.viewportHeight;
+    final tileBottom = widget.rowTop + widget.tileHeight;
+    // A card is fully settled once this much of it has cleared the edge.
+    final window = widget.tileHeight * 0.75;
+    if (window <= 0) return 1;
+
+    final entering = ((viewBottom - widget.rowTop) / window).clamp(0.0, 1.0);
+    final leaving = ((tileBottom - viewTop) / window).clamp(0.0, 1.0);
+    return entering < leaving ? entering : leaving;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_entrance, widget.scrollController]),
+      child: widget.child,
+      builder: (context, child) {
+        final entrance = Curves.easeOutCubic.transform(_entrance.value);
+        final progress = Curves.easeOut.transform(_scrollProgress());
+        final scale = 0.9 + 0.1 * progress;
+
+        return Opacity(
+          opacity: (entrance * (0.45 + 0.55 * progress)).clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(0, (1 - entrance) * 26),
+            child: Transform.scale(scale: scale, child: child),
+          ),
         );
       },
     );

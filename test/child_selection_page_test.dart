@@ -28,8 +28,8 @@ void main() {
     // One per learner, plus the koala in the header is an image, not an avatar.
     expect(find.byType(ChildAvatar), findsNWidgets(2));
     // None of the parent dashboard comes along for the ride.
-    expect(find.text('Parent Dashboard'), findsNothing);
     expect(find.text('Start learning'), findsNothing);
+    expect(find.text('Stage reports'), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
   });
 
@@ -50,7 +50,7 @@ void main() {
     final harness = await _Harness.create(names: const ['Ali']);
 
     await harness.pump(tester);
-    await tester.tap(find.byTooltip('Parent dashboard'));
+    await tester.tap(find.text('Parent dashboard'));
     await tester.pumpAndSettle();
 
     expect(harness.routeLog.pushed, contains(RouteNames.parentalLock));

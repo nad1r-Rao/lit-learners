@@ -9,7 +9,9 @@ import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../viewmodels/profile_viewmodel.dart';
+import '../../widgets/child_action_bar.dart';
 import '../../widgets/child_avatar.dart';
+import '../../widgets/parent_area_button.dart';
 
 /// The screen a signed-in parent lands on: nothing but the learners' faces and
 /// names, so the child can start on their own. Everything a parent needs sits
@@ -48,13 +50,14 @@ class _ChildSelectionPageState extends State<ChildSelectionPage> {
 
     return Scaffold(
       backgroundColor: AppColors.cloud,
+      bottomNavigationBar: ChildActionBar(
+        actions: [ParentAreaButton(onPressed: () => _openParentArea(context))],
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
-            _SelectionHero(
-              onOpenParentArea: () => _openParentArea(context),
-            ),
+            const _SelectionHero(),
             const SizedBox(height: 22),
             if (profileVm.isLoading && profileVm.profiles.isEmpty)
               const Padding(
@@ -112,9 +115,7 @@ class _ChildSelectionPageState extends State<ChildSelectionPage> {
 }
 
 class _SelectionHero extends StatelessWidget {
-  const _SelectionHero({required this.onOpenParentArea});
-
-  final VoidCallback onOpenParentArea;
+  const _SelectionHero();
 
   @override
   Widget build(BuildContext context) {
@@ -138,18 +139,12 @@ class _SelectionHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Image.asset(
-                'assets/images/koala/koala_guide_portrait.png',
-                height: 46,
-                fit: BoxFit.contain,
-              ),
-              const Spacer(),
-              ParentAreaButton(onPressed: onOpenParentArea),
-            ],
+          Image.asset(
+            'assets/images/koala/koala_guide_portrait.png',
+            height: 46,
+            fit: BoxFit.contain,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
             'Who is learning today?',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -168,27 +163,6 @@ class _SelectionHero extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// The one way from a child screen into the parent dashboard. Shared so the
-/// child home and this screen show the same door in the same place.
-class ParentAreaButton extends StatelessWidget {
-  const ParentAreaButton({required this.onPressed, super.key});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton.filled(
-      tooltip: 'Parent dashboard',
-      style: IconButton.styleFrom(
-        backgroundColor: AppColors.honey,
-        foregroundColor: AppColors.ink,
-      ),
-      onPressed: onPressed,
-      icon: const Icon(Icons.family_restroom_rounded),
     );
   }
 }
