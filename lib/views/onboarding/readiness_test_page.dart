@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/localization/onboarding_strings.dart';
-import '../../core/routing/route_names.dart';
+import '../../core/routing/auth_flow_router.dart';
 import '../../models/onboarding.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/onboarding_viewmodel.dart';
@@ -200,7 +200,10 @@ class _ReadinessTestPageState extends State<ReadinessTestPage> {
     if (!context.mounted) return;
 
     if (passed) {
-      Navigator.of(context).pushReplacementNamed(RouteNames.profiles);
+      await AuthFlowRouter.routeToChildArea(
+        context: context,
+        parentId: parentId,
+      );
       return;
     }
 

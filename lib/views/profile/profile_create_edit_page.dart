@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/avatar_presets.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/routing/route_names.dart';
 import '../../models/child_profile.dart';
@@ -30,18 +32,11 @@ class ProfileCreateEditPage extends StatefulWidget {
 class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
   final _nameController = TextEditingController();
   int _age = 3;
-  String _avatarAsset = 'koala-blue';
+  String _avatarAsset = AvatarPresets.fallback.id;
   bool _leaderboardOptIn = false;
   String _displayPreference = 'alias';
   bool _didSeedFields = false;
   bool _isUploadingAvatar = false;
-
-  static const _avatars = [
-    'koala-blue',
-    'koala-green',
-    'koala-coral',
-    'koala-honey',
-  ];
 
   @override
   void initState() {
@@ -124,7 +119,7 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
             const _SectionHeading(
               icon: Icons.face_rounded,
               label: 'Avatar',
-              helper: 'Pick a color avatar or choose a photo.',
+              helper: 'Pick a buddy, or use a photo.',
             ),
             const SizedBox(height: 8),
             _AvatarPicker(
@@ -132,11 +127,10 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
                   ? 'Learner'
                   : _nameController.text,
               selectedAvatar: _avatarAsset,
-              avatars: _avatars,
               onAvatarSelected: (avatar) {
                 setState(() => _avatarAsset = avatar);
               },
-              onPickGallery: _pickAvatarFromGallery,
+              onPickPhoto: _pickAvatarPhoto,
             ),
             const SizedBox(height: 16),
             _FancyProfileField(
@@ -252,20 +246,151 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
           );
 
     if (!context.mounted || !success) return;
+    _leaveForm(context);
+  }
+
+  /// Back to wherever this form was opened from, unwinding the parental lock
+  /// on the way. The predicate keeps the child selection screen underneath
+  /// when there is one, so the parent area stays one back gesture deep; on a
+  /// brand new account nothing matches and the child selection screen becomes
+  /// the new root.
+  void _leaveForm(BuildContext context) {
     Navigator.of(context).pushNamedAndRemoveUntil(
-      RouteNames.profiles,
-      (route) => false,
+      widget.args?.returnRoute ?? RouteNames.parentDashboard,
+      (route) => route.settings.name == RouteNames.childSelection,
     );
   }
 
-  Future<void> _pickAvatarFromGallery() async {
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 720,
-      imageQuality: 82,
+  /// Camera or gallery, then an explanation of why the app is about to ask,
+  /// and only then the picker that raises the system permission prompt. A
+  /// parent who says no here never sees an OS dialog they did not expect.
+  Future<void> _pickAvatarPhoto() async {
+    final source = await _chooseImageSource();
+    if (source == null || !mounted) return;
+
+    final proceed = await _confirmPhotoAccess(source);
+    if (proceed != true || !mounted) return;
+
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 720,
+        imageQuality: 82,
+      );
+      if (picked == null || !mounted) return;
+      setState(() => _avatarAsset = Uri.file(picked.path).toString());
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_pickerErrorMessage(error, source)),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    }
+  }
+
+  Future<ImageSource?> _chooseImageSource() {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Text(
+                  'Add a profile photo',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_camera_rounded,
+                  color: AppColors.plum,
+                ),
+                title: const Text('Take a photo'),
+                subtitle: const Text('Uses the camera on this device.'),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library_rounded,
+                  color: AppColors.plum,
+                ),
+                title: const Text('Choose from gallery'),
+                subtitle: const Text('Pick a picture already on this device.'),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(ImageSource.gallery),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
     );
-    if (picked == null) return;
-    setState(() => _avatarAsset = Uri.file(picked.path).toString());
+  }
+
+  Future<bool?> _confirmPhotoAccess(ImageSource source) {
+    final isCamera = source == ImageSource.camera;
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          icon: Icon(
+            isCamera
+                ? Icons.photo_camera_rounded
+                : Icons.photo_library_rounded,
+            color: AppColors.plum,
+          ),
+          title: Text(
+            isCamera ? 'Allow camera access?' : 'Allow photo access?',
+          ),
+          content: Text(
+            isCamera
+                ? 'Little Learners needs the camera to take this profile '
+                    'photo. The picture stays on this device until you save '
+                    'the profile, and it is only used as the child avatar.'
+                : 'Little Learners needs access to your photos so you can '
+                    'pick a profile picture. Only the picture you choose is '
+                    'used, and only as the child avatar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// A refused system prompt is not an error the parent can retry away: the
+  /// only way back is the device settings, so say that instead of the code.
+  String _pickerErrorMessage(PlatformException error, ImageSource source) {
+    if (error.code == 'camera_access_denied') {
+      return 'Camera access is turned off for Little Learners. Turn it on in '
+          'your device settings, or pick a buddy avatar instead.';
+    }
+    if (error.code == 'photo_access_denied') {
+      return 'Photo access is turned off for Little Learners. Turn it on in '
+          'your device settings, or pick a buddy avatar instead.';
+    }
+    return source == ImageSource.camera
+        ? 'The camera could not be opened. You can pick a buddy avatar '
+            'instead.'
+        : 'That picture could not be opened. You can pick a buddy avatar '
+            'instead.';
   }
 
   Future<String?> _avatarForSave(
@@ -351,7 +476,7 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
   String _fallbackAvatar(ChildProfile? editingProfile) {
     final previous = editingProfile?.avatarAsset;
     if (previous != null && !previous.startsWith('file://')) return previous;
-    return _avatars.first;
+    return AvatarPresets.fallback.id;
   }
 
   Future<void> _confirmDelete(
@@ -384,10 +509,7 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
           childId: profile.id,
         );
     if (!context.mounted || !deleted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      RouteNames.profiles,
-      (route) => false,
-    );
+    _leaveForm(context);
   }
 }
 
@@ -539,16 +661,14 @@ class _AvatarPicker extends StatelessWidget {
   const _AvatarPicker({
     required this.name,
     required this.selectedAvatar,
-    required this.avatars,
     required this.onAvatarSelected,
-    required this.onPickGallery,
+    required this.onPickPhoto,
   });
 
   final String name;
   final String selectedAvatar;
-  final List<String> avatars;
   final ValueChanged<String> onAvatarSelected;
-  final VoidCallback onPickGallery;
+  final VoidCallback onPickPhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -572,34 +692,97 @@ class _AvatarPicker extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onPickGallery,
-                  icon: const Icon(Icons.photo_library_rounded),
-                  label: const Text('Choose from gallery'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Profile photo',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tap a buddy below, or use a photo of your child.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.ink.withValues(alpha: 0.6),
+                          ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              for (final avatar in avatars)
-                ChoiceChip(
-                  avatar: ChildAvatar(
-                    name: name,
-                    avatarValue: avatar,
-                    radius: 12,
-                  ),
-                  label: Text(avatar.replaceFirst('koala-', '')),
-                  selected: selectedAvatar == avatar,
-                  selectedColor: AppColors.honey,
-                  onSelected: (_) => onAvatarSelected(avatar),
+              for (final preset in AvatarPresets.all)
+                _PresetOption(
+                  preset: preset,
+                  selected: selectedAvatar == preset.id,
+                  onTap: () => onAvatarSelected(preset.id),
                 ),
             ],
           ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: onPickPhoto,
+            icon: const Icon(Icons.add_a_photo_rounded),
+            label: const Text('Use a photo'),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _PresetOption extends StatelessWidget {
+  const _PresetOption({
+    required this.preset,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AvatarPreset preset;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${preset.label} avatar',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ChildAvatar(
+                name: preset.label,
+                avatarValue: preset.id,
+                radius: 26,
+                borderColor: selected ? AppColors.coral : Colors.white,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                preset.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: selected
+                      ? AppColors.coral
+                      : AppColors.ink.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

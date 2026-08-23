@@ -24,6 +24,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Little Learners uses the camera so a parent can take a profile photo for their child.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Little Learners lets parents choose a child avatar from the photo library.</string>
 	<key>UILaunchStoryboardName</key>

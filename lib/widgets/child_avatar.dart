@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../core/constants/app_colors.dart';
+import '../core/constants/avatar_presets.dart';
 
 class ChildAvatar extends StatelessWidget {
   const ChildAvatar({
@@ -24,28 +25,22 @@ class ChildAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = _avatarImage();
+    final preset = AvatarPresets.byId(avatarValue);
     return Container(
       width: radius * 2,
       height: radius * 2,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: backgroundColor ?? _presetColor(avatarValue),
+        color: backgroundColor ?? preset?.background ?? AppColors.lavender,
         border: borderColor != null
             ? Border.all(color: borderColor!, width: 2)
             : null,
       ),
       clipBehavior: Clip.antiAlias,
-      child: image ??
-          Center(
-            child: Text(
-              _initials(name),
-              style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
+      child: _avatarImage() ??
+          (preset == null
+              ? _AvatarFallback(name: name, textColor: textColor)
+              : _PresetFace(preset: preset, radius: radius)),
     );
   }
 
@@ -80,6 +75,26 @@ class ChildAvatar extends StatelessWidget {
   }
 }
 
+class _PresetFace extends StatelessWidget {
+  const _PresetFace({required this.preset, required this.radius});
+
+  final AvatarPreset preset;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        preset.emoji,
+        textAlign: TextAlign.center,
+        // The emoji glyph sits inside its own padding, so it needs more than
+        // the radius to fill the circle the way an initial does.
+        style: TextStyle(fontSize: radius * 1.15, height: 1.15),
+      ),
+    );
+  }
+}
+
 class _AvatarFallback extends StatelessWidget {
   const _AvatarFallback({
     required this.name,
@@ -108,13 +123,4 @@ String _initials(String value) {
   if (parts.isEmpty || parts.first.isEmpty) return 'LL';
   if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
   return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-}
-
-Color _presetColor(String value) {
-  return switch (value) {
-    'koala-coral' => AppColors.coral.withValues(alpha: 0.2),
-    'koala-honey' => AppColors.honey.withValues(alpha: 0.32),
-    'koala-green' => AppColors.sky.withValues(alpha: 0.18),
-    _ => AppColors.lavender,
-  };
 }

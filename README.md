@@ -15,7 +15,8 @@ Little Learners is a Flutter e-learning app for toddlers ages 1 to 4. This repos
 - Navigation runs child profile ▸ modules ▸ levels ▸ sequential content. Each level covers one **portion** of its module (English `A – F`, then `G – L`), the levels screen names that portion, a level unlocks only once the previous one is finished, and inside a level the child meets A before B before C.
 - Interactive Math counting/matching activity flow.
 - Cached level download state for unlocked later levels.
-- Child profile selection.
+- Child selection screen as the landing screen after sign-in: learner faces and names only, with the parent dashboard behind a parental-lock button.
+- Six ready-made avatars plus camera/gallery profile photos, each asked for with an in-app consent step before the system permission prompt.
 - Child learning dashboard.
 - Module level map and unlock logic.
 - Generic activity, quiz, reward flow.

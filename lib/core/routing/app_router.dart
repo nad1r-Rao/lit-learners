@@ -19,8 +19,9 @@ import '../../views/onboarding/manual_page.dart';
 import '../../views/onboarding/onboarding_language_page.dart';
 import '../../views/onboarding/readiness_test_page.dart';
 import '../../views/profile/parental_lock_page.dart';
+import '../../views/profile/child_selection_page.dart';
+import '../../views/profile/parent_dashboard_page.dart';
 import '../../views/profile/profile_create_edit_page.dart';
-import '../../views/profile/profile_selection_page.dart';
 import '../../views/quiz/quiz_page.dart';
 import '../../views/reminders/parent_reminders_page.dart';
 import '../../views/reports/parent_reports_page.dart';
@@ -82,9 +83,14 @@ class VideoPlayerArgs {
 }
 
 class ProfileEditArgs {
-  const ProfileEditArgs({this.profileId});
+  const ProfileEditArgs({this.profileId, this.returnRoute});
 
   final String? profileId;
+
+  /// Where saving lands. A parent editing from the dashboard belongs back on
+  /// the dashboard, while the first profile of a brand new account belongs on
+  /// the child selection screen; null means the dashboard.
+  final String? returnRoute;
 }
 
 class ParentalLockArgs {
@@ -137,7 +143,8 @@ class AppRouter {
         RouteNames.onboardingTest => const ReadinessTestPage(),
         RouteNames.adminDashboard => const AdminDashboardPage(),
         RouteNames.adminContent => const AdminContentPage(),
-        RouteNames.profiles => const ProfileSelectionPage(),
+        RouteNames.parentDashboard => const ParentDashboardPage(),
+        RouteNames.childSelection => const ChildSelectionPage(),
         RouteNames.profileEdit => ProfileCreateEditPage(
             args: settings.arguments as ProfileEditArgs?,
           ),

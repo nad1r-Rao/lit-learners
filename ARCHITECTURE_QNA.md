@@ -1015,9 +1015,10 @@ without one (`HomePage` shows a "Choose a learner profile first" screen if
 
 ```
 parent surface                    child surface
-  /login /signup                    /child/home
-  /onboarding/*                     /child/module/levels
-  /profiles  /profiles/edit         /child/level/player
+  /login /signup                    /child/select
+  /onboarding/*                     /child/home
+  /parent/dashboard                 /child/module/levels
+  /profiles/edit                    /child/level/player
   /parent/reports                   /child/quiz
   /parent/reminders                 /child/celebration
   /parent/leaderboard               /child/video, /child/video/player
@@ -1026,9 +1027,18 @@ parent surface                    child surface
   ────────── /parental-lock ──────────
 ```
 
-Entering the child surface is `pushReplacementNamed(childHome)` after
-`_startLearning` selects the profile — replacement, so the child cannot press
-back into the parent dashboard.
+The child surface is the default one. `AuthFlowRouter.routeAfterAuth` sends a
+parent who has finished onboarding to `/child/select` — faces and names only —
+and only to `/profiles/edit` first when the account has no child yet. The
+parent dashboard is never on that path: it is reached on purpose, through the
+parent-area button that the child selection screen and `HomePage` both show,
+and that button goes through `/parental-lock`.
+
+`/child/select` stays at the bottom of the child surface's stack: opening a
+child pushes `/child/home` rather than replacing, and the two jumps that do
+clear the stack (saving a profile, "Home" on the celebration screen) stop
+unwinding at `/child/select` instead of wiping it. So back always leads
+outward to the faces, never sideways into the parent dashboard.
 
 **The lock — the crossing point.**
 
@@ -1113,8 +1123,10 @@ content, not a blank list.
 
 Four independent layers:
 
-1. **Navigation** — parent routes are only reachable from the parent dashboard,
-   and entering the child surface uses `pushReplacement`.
+1. **Navigation** — the child surface is where a signed-in parent lands, and
+   the only door out of it is the parent-area button, which opens the lock
+   rather than the dashboard. Parent routes stay reachable only from the
+   dashboard behind it.
 2. **The parental lock** on every sensitive parent route.
 3. **Session scoping** — child screens read `ActiveChildSession`, which holds
    exactly one profile; there is no API on it to enumerate siblings.

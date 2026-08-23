@@ -19,14 +19,14 @@ import '../../widgets/child_avatar.dart';
 import '../leaderboard/leaderboard_page.dart';
 import '../reminders/parent_reminders_page.dart';
 
-class ProfileSelectionPage extends StatefulWidget {
-  const ProfileSelectionPage({super.key});
+class ParentDashboardPage extends StatefulWidget {
+  const ParentDashboardPage({super.key});
 
   @override
-  State<ProfileSelectionPage> createState() => _ProfileSelectionPageState();
+  State<ParentDashboardPage> createState() => _ParentDashboardPageState();
 }
 
-class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
+class _ParentDashboardPageState extends State<ParentDashboardPage> {
   int _selectedTab = 0;
   String? _loadedParentId;
 

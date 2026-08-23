@@ -8,6 +8,12 @@
     <!-- Reminders are scheduled inexactly on purpose, which keeps this app
          clear of SCHEDULE_EXACT_ALARM and its Play Store justification. -->
 
+    <!-- A parent can take a child's profile photo. image_picker hands that to
+         the system camera app, so no CAMERA permission is declared: declaring
+         it would only add a runtime prompt the app does not need. Marking the
+         feature optional keeps the app installable on camera-less devices. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
     <application
         android:label="little_learners"
         android:name="${applicationName}"

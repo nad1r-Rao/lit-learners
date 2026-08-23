@@ -10,14 +10,15 @@ class RouteNames {
   static const onboardingTest = '/onboarding/test';
   static const adminDashboard = '/admin';
   static const adminContent = '/admin/content';
-  static const profiles = '/profiles';
   static const profileEdit = '/profiles/edit';
+  static const parentDashboard = '/parent/dashboard';
   static const parentReports = '/parent/reports';
   static const parentReminders = '/parent/reminders';
   static const parentNotifications = '/parent/notifications';
   static const leaderboard = '/parent/leaderboard';
   static const parentalLock = '/parental-lock';
   static const parentMarking = '/parent/marking';
+  static const childSelection = '/child/select';
   static const childHome = '/child/home';
   static const moduleLevels = '/child/module/levels';
   static const levelPlayer = '/child/level/player';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/routing/app_router.dart';
 import '../../core/routing/route_names.dart';
 import '../../models/child_profile.dart';
 import '../../models/learning_module.dart';
@@ -9,6 +10,7 @@ import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../widgets/child_avatar.dart';
 import '../../widgets/module_card.dart';
+import '../profile/child_selection_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -36,8 +38,12 @@ class HomePage extends StatelessWidget {
               levelsCompleted: learning.completedLevelCount,
               onSwitchProfile: () {
                 session.clear();
-                Navigator.of(context).pushReplacementNamed(RouteNames.profiles);
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  RouteNames.childSelection,
+                  (route) => false,
+                );
               },
+              onOpenParentArea: () => _openParentArea(context),
             ),
             const SizedBox(height: 20),
             _ModuleSectionHeading(count: learning.modules.length),
@@ -60,6 +66,17 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  /// The way out of the child's part of the app, behind the same check that
+  /// already guards profile edits and reports.
+  void _openParentArea(BuildContext context) {
+    Navigator.of(context).pushNamed(
+      RouteNames.parentalLock,
+      arguments: const ParentalLockArgs(
+        successRoute: RouteNames.parentDashboard,
+      ),
+    );
+  }
+
   void _openModule(BuildContext context, LearningModule module) {
     final route = module.category == ModuleCategory.video
         ? RouteNames.videoLearning
@@ -74,12 +91,14 @@ class _ChildHero extends StatelessWidget {
     required this.starsEarned,
     required this.levelsCompleted,
     required this.onSwitchProfile,
+    required this.onOpenParentArea,
   });
 
   final ChildProfile child;
   final int starsEarned;
   final int levelsCompleted;
   final VoidCallback onSwitchProfile;
+  final VoidCallback onOpenParentArea;
 
   @override
   Widget build(BuildContext context) {
@@ -140,12 +159,14 @@ class _ChildHero extends StatelessWidget {
               IconButton.filled(
                 tooltip: 'Switch profile',
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.honey,
-                  foregroundColor: AppColors.ink,
+                  backgroundColor: Colors.white.withValues(alpha: 0.18),
+                  foregroundColor: Colors.white,
                 ),
                 onPressed: onSwitchProfile,
                 icon: const Icon(Icons.switch_account_rounded),
               ),
+              const SizedBox(width: 6),
+              ParentAreaButton(onPressed: onOpenParentArea),
             ],
           ),
           const SizedBox(height: 16),
@@ -381,8 +402,10 @@ class _NoProfileChosen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: () => Navigator.of(context)
-                    .pushReplacementNamed(RouteNames.profiles),
+                onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil(
+                  RouteNames.childSelection,
+                  (route) => false,
+                ),
                 icon: const Icon(Icons.switch_account),
                 label: const Text('Choose profile'),
               ),
