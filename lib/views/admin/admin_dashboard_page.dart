@@ -37,195 +37,207 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
     return AdminScaffold(
       title: 'Admin Dashboard',
+      subtitle: adminAuth.admin?.role.label ?? 'Admin portal',
       showLogout: true,
       actions: [
-        IconButton(
+        AdminHeaderAction(
           tooltip: 'Refresh',
+          icon: Icons.refresh,
           onPressed: stats.isLoading
               ? null
               : () => context.read<AdminStatsViewModel>().load(),
-          icon: const Icon(Icons.refresh),
         ),
       ],
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.line),
-                  color: AppColors.panel,
-                ),
-                child: const Icon(
-                  Icons.admin_panel_settings,
-                  color: AppColors.sky,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      adminAuth.admin?.role.label ?? 'Admin Portal',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    Text(
-                      adminAuth.admin?.displayLabel ?? 'Admin',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          // Requirement 1: the three counts land in the hero card, so they are
+          // the first thing a successful login shows.
+          _AdminIdentityCard(
+            name: adminAuth.admin?.displayLabel ?? 'Admin',
+            role: adminAuth.admin?.role.label ?? 'Admin portal',
+            stats: stats,
           ),
           const SizedBox(height: 18),
-          if (stats.isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else ...[
-            if (stats.errorMessage != null) ...[
-              _ErrorBanner(message: stats.errorMessage!),
-              const SizedBox(height: 12),
-            ],
-            _SystemSnapshot(stats: stats),
-            const SizedBox(height: 18),
-            Text(
-              'Admin Menu',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 10),
-            // Each entry is hidden rather than disabled when the role cannot
-            // use it, so the menu shows only what this admin can actually do.
-            if (adminAuth.admin?.canManageContent ?? false) ...[
-              _AdminMenuTile(
-                title: 'Manage Content',
-                subtitle: 'Modules, levels, quizzes and media',
-                icon: Icons.book_outlined,
-                iconColor: AppColors.sky,
-                backgroundColor: const Color(0xFFE6F1FB),
-                onTap: () =>
-                    Navigator.of(context).pushNamed(RouteNames.adminContent),
-              ),
-              const SizedBox(height: 10),
-            ],
-            if (adminAuth.admin?.canViewParentAccounts ?? false) ...[
-              _AdminMenuTile(
-                title: 'View Parent Accounts',
-                subtitle: 'Registered parents (monitoring only)',
-                icon: Icons.family_restroom_outlined,
-                iconColor: AppColors.plum,
-                backgroundColor: const Color(0xFFEEEDFE),
-                onTap: () => Navigator.of(context)
-                    .pushNamed(RouteNames.adminParentAccounts),
-              ),
-              const SizedBox(height: 10),
-            ],
-            _AdminMenuTile(
-              title: 'View Progress Statistics',
-              subtitle: 'Module usage and level completion',
-              icon: Icons.insights_outlined,
-              iconColor: AppColors.leaf,
-              backgroundColor: const Color(0xFFE1F5EE),
-              onTap: () => Navigator.of(context)
-                  .pushNamed(RouteNames.adminProgressStatistics),
-            ),
-            const SizedBox(height: 10),
-            _AdminMenuTile(
-              title: 'Admin Logout',
-              subtitle: 'End this admin session',
-              icon: Icons.logout_rounded,
-              iconColor: AppColors.coral,
-              backgroundColor: const Color(0xFFFFEAE7),
-              onTap: () => confirmAdminLogout(context),
-            ),
+          if (stats.errorMessage != null) ...[
+            AdminInlineError(message: stats.errorMessage!),
+            const SizedBox(height: 12),
           ],
+          const AdminSectionHeading(
+            title: 'Admin Menu',
+            subtitle: 'Everything this account is allowed to manage.',
+          ),
+          const SizedBox(height: 10),
+          // Each entry is hidden rather than disabled when the role cannot
+          // use it, so the menu shows only what this admin can actually do.
+          if (adminAuth.admin?.canManageContent ?? false) ...[
+            _AdminMenuTile(
+              title: 'Manage Content',
+              subtitle: 'Modules, levels, quizzes and media',
+              icon: Icons.auto_stories_rounded,
+              accent: AppColors.sky,
+              onTap: () =>
+                  Navigator.of(context).pushNamed(RouteNames.adminContent),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (adminAuth.admin?.canViewParentAccounts ?? false) ...[
+            _AdminMenuTile(
+              title: 'View Parent Accounts',
+              subtitle: 'Registered parents (monitoring only)',
+              icon: Icons.family_restroom_rounded,
+              accent: AppColors.plum,
+              onTap: () => Navigator.of(context)
+                  .pushNamed(RouteNames.adminParentAccounts),
+            ),
+            const SizedBox(height: 10),
+          ],
+          _AdminMenuTile(
+            title: 'View Progress Statistics',
+            subtitle: 'Module usage and level completion',
+            icon: Icons.insights_rounded,
+            accent: AppColors.leaf,
+            onTap: () => Navigator.of(context)
+                .pushNamed(RouteNames.adminProgressStatistics),
+          ),
+          const SizedBox(height: 10),
+          _AdminMenuTile(
+            title: 'Admin Logout',
+            subtitle: 'End this admin session',
+            icon: Icons.logout_rounded,
+            accent: AppColors.coral,
+            onTap: () => confirmAdminLogout(context),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Requirement 1: the three counts shown immediately after a successful login.
-class _SystemSnapshot extends StatelessWidget {
-  const _SystemSnapshot({required this.stats});
+/// Requirement 1: who is signed in, and the three system counts.
+///
+/// Deliberately the same gradient hero the parent dashboard opens with, so an
+/// admin lands on a screen that is recognisably part of the app.
+class _AdminIdentityCard extends StatelessWidget {
+  const _AdminIdentityCard({
+    required this.name,
+    required this.role,
+    required this.stats,
+  });
 
+  final String name;
+  final String role;
   final AdminStatsViewModel stats;
 
   @override
   Widget build(BuildContext context) {
     final data = stats.stats;
-    return Card(
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: AdminPalette.headerGradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grape.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'System Snapshot',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.honey,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        role,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            AdminMetricTile(
-              icon: Icons.child_care_outlined,
-              label: 'Child profiles',
-              value: '${data.totalChildProfiles}',
-              accent: AppColors.aqua,
-            ),
-            const SizedBox(height: 8),
-            AdminMetricTile(
-              icon: Icons.people_outline,
-              label: 'Registered parent accounts',
-              value: '${data.totalParentAccounts}',
-              accent: AppColors.plum,
-            ),
-            const SizedBox(height: 8),
-            AdminMetricTile(
-              icon: Icons.quiz_outlined,
-              label: 'Quizzes uploaded',
-              value: '${data.totalQuizzes}',
-              accent: AppColors.honey,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFFFFEAE7),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            const Icon(Icons.error_outline, color: AppColors.coral),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message)),
+            const SizedBox(height: 14),
+            if (stats.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 18),
+                child: Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: AdminHeaderStat(
+                      icon: Icons.child_care_rounded,
+                      value: '${data.totalChildProfiles}',
+                      label: 'Child profiles',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AdminHeaderStat(
+                      icon: Icons.people_alt_rounded,
+                      value: '${data.totalParentAccounts}',
+                      label: 'Parent accounts',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AdminHeaderStat(
+                      icon: Icons.quiz_rounded,
+                      value: '${data.totalQuizzes}',
+                      label: 'Quizzes',
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -238,63 +250,55 @@ class _AdminMenuTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.iconColor,
-    required this.backgroundColor,
+    required this.accent,
     required this.onTap,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
-  final Color iconColor;
-  final Color backgroundColor;
+  final Color accent;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(8),
+    return AdminSoftCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          AdminIconChip(icon: icon, color: accent, size: 46),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
-                child: Icon(icon, color: iconColor),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.ink.withValues(alpha: 0.66),
+                        height: 1.25,
+                      ),
                 ),
-              ),
-              const Icon(Icons.chevron_right),
-            ],
+              ],
+            ),
           ),
-        ),
+          const SizedBox(width: 6),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.ink.withValues(alpha: 0.4),
+          ),
+        ],
       ),
     );
   }
