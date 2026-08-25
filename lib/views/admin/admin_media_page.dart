@@ -40,18 +40,21 @@ class _AdminMediaPageState extends State<AdminMediaPage> {
 
     return AdminScaffold(
       title: 'Media Library',
+      subtitle: 'Images, audio and video',
       actions: [
-        IconButton(
+        AdminHeaderAction(
           tooltip: 'Refresh',
+          icon: Icons.refresh,
           onPressed: media.isLoading
               ? null
               : () => context.read<AdminMediaViewModel>().load(),
-          icon: const Icon(Icons.refresh),
         ),
       ],
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.honey,
+        foregroundColor: AppColors.ink,
         onPressed: media.isUploading ? null : () => _startUpload(context),
-        icon: const Icon(Icons.upload_file),
+        icon: const Icon(Icons.upload_file_rounded),
         label: const Text('Upload media'),
       ),
       child: Stack(
@@ -63,51 +66,42 @@ class _AdminMediaPageState extends State<AdminMediaPage> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
                 if (media.errorMessage != null) ...[
-                  _Banner(
+                  AdminInlineError(
                     message: media.errorMessage!,
-                    isError: true,
                     onDismiss: () =>
                         context.read<AdminMediaViewModel>().clearMessages(),
                   ),
                   const SizedBox(height: 12),
                 ],
                 if (media.infoMessage != null) ...[
-                  _Banner(
+                  AdminInlineSuccess(
                     message: media.infoMessage!,
-                    isError: false,
                     onDismiss: () =>
                         context.read<AdminMediaViewModel>().clearMessages(),
                   ),
                   const SizedBox(height: 12),
                 ],
-                Text(
-                  'Uploaded Media',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Every file is tied to a module. Use the download URL as an '
-                  'audio cue key or lesson source.',
-                  style: Theme.of(context).textTheme.bodySmall,
+                const AdminSectionHeading(
+                  title: 'Uploaded Media',
+                  subtitle: 'Every file is tied to a module. Use the download '
+                      'URL as an audio cue key or lesson source.',
                 ),
                 const SizedBox(height: 10),
                 if (media.assets.isEmpty)
-                  const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(
-                        child: Text('No media uploaded yet.'),
-                      ),
-                    ),
+                  const AdminEmptyState(
+                    icon: Icons.perm_media_rounded,
+                    title: 'No media uploaded yet',
+                    message: 'Use the upload button to add the first image, '
+                        'audio clip or video for a module.',
                   )
                 else
                   ...media.assets.map(
-                    (asset) => _MediaAssetTile(
-                      asset: asset,
-                      onDelete: () => _confirmDelete(context, asset),
+                    (asset) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _MediaAssetTile(
+                        asset: asset,
+                        onDelete: () => _confirmDelete(context, asset),
+                      ),
                     ),
                   ),
               ],
@@ -197,17 +191,30 @@ class _AdminMediaPageState extends State<AdminMediaPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        icon: Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: AppColors.coral.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child:
+              const Icon(Icons.delete_outline_rounded, color: AppColors.coral),
+        ),
         title: const Text('Delete media?'),
         content: Text(
           '${asset.fileName} will be removed from Firebase immediately and '
           'cleared from devices on their next sync.',
+          textAlign: TextAlign.center,
         ),
+        actionsAlignment: MainAxisAlignment.center,
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.coral),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
@@ -253,12 +260,24 @@ class _UploadSheetState extends State<_UploadSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Upload media',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              const AdminIconChip(
+                icon: Icons.upload_file_rounded,
+                color: AppColors.violet,
+                size: 40,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Upload media',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
@@ -303,12 +322,15 @@ class _UploadSheetState extends State<_UploadSheet> {
             },
           ),
           const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(context).pop(
-              _UploadSelection(moduleId: _moduleId, type: _type),
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(
+                _UploadSelection(moduleId: _moduleId, type: _type),
+              ),
+              icon: const Icon(Icons.folder_open_rounded),
+              label: const Text('Choose file'),
             ),
-            icon: const Icon(Icons.folder_open),
-            label: const Text('Choose file'),
           ),
         ],
       ),
@@ -324,74 +346,72 @@ class _MediaAssetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFE6F1FB),
-          child: Icon(_iconFor(asset.type), color: AppColors.sky),
-        ),
-        title: Text(
-          asset.fileName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(
-          '${asset.type.name} · ${_readableSize(asset.sizeBytes)}'
-          '${asset.moduleId == null ? '' : ' · ${asset.moduleId}'}',
-        ),
-        trailing: IconButton(
-          tooltip: 'Delete',
-          onPressed: onDelete,
-          icon: const Icon(Icons.delete_outline, color: AppColors.coral),
-        ),
+    final accent = _accentFor(asset.type);
+
+    return AdminSoftCard(
+      padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+      child: Row(
+        children: [
+          AdminIconChip(icon: _iconFor(asset.type), color: accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  asset.fileName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    AdminPill(label: asset.type.name, accent: accent),
+                    AdminPill(
+                      label: _readableSize(asset.sizeBytes),
+                      accent: AppColors.violet,
+                    ),
+                    if (asset.moduleId != null)
+                      AdminPill(
+                        icon: Icons.auto_stories_rounded,
+                        label: asset.moduleId!,
+                        accent: AppColors.sky,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Delete',
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline_rounded,
+                color: AppColors.coral),
+          ),
+        ],
       ),
     );
   }
 
   IconData _iconFor(MediaAssetType type) {
     return switch (type) {
-      MediaAssetType.audio => Icons.audiotrack_outlined,
-      MediaAssetType.image => Icons.image_outlined,
-      MediaAssetType.video => Icons.movie_outlined,
-      MediaAssetType.document => Icons.description_outlined,
+      MediaAssetType.audio => Icons.audiotrack_rounded,
+      MediaAssetType.image => Icons.image_rounded,
+      MediaAssetType.video => Icons.movie_rounded,
+      MediaAssetType.document => Icons.description_rounded,
     };
   }
-}
 
-class _Banner extends StatelessWidget {
-  const _Banner({
-    required this.message,
-    required this.isError,
-    required this.onDismiss,
-  });
-
-  final String message;
-  final bool isError;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: isError ? const Color(0xFFFFEAE7) : AppColors.mint,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
-        child: Row(
-          children: [
-            Icon(
-              isError ? Icons.error_outline : Icons.check_circle_outline,
-              color: isError ? AppColors.coral : AppColors.leaf,
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message)),
-            IconButton(
-              onPressed: onDismiss,
-              icon: const Icon(Icons.close, size: 18),
-            ),
-          ],
-        ),
-      ),
-    );
+  Color _accentFor(MediaAssetType type) {
+    return switch (type) {
+      MediaAssetType.audio => AppColors.plum,
+      MediaAssetType.image => AppColors.sky,
+      MediaAssetType.video => AppColors.coral,
+      MediaAssetType.document => AppColors.leaf,
+    };
   }
 }
 
