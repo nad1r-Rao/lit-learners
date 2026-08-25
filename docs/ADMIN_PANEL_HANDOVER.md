@@ -1,8 +1,19 @@
 # Admin Panel — Implementation & Handover
 
-**Branch:** `feat/admin-panel` (14 commits off `main` @ `4733d74`)
-**Date:** 2026-08-07
-**Status:** Complete against the written specification. **Not production-verified** — see [Caveats](#caveats-read-before-trusting-this).
+**Branch:** `feat/admin-panel` (20 commits ahead of `main`)
+**Last updated:** 2026-08-26
+**Status:** Complete against the written specification, merged with upstream, and
+Firebase-ready. **Never executed against a real Firebase project** — see
+[Caveats](#caveats-read-before-trusting-this).
+
+> **2026-08-26 — read this first.** The team's work is on
+> **`umercodes27/lit-learners`**, not the `nad1r-Rao` fork. `git pull` from
+> `origin` reports nothing while upstream moves. An `upstream` remote is
+> configured; use `git fetch upstream`.
+>
+> Upstream was merged on 2026-08-26 (31 commits, 128 files) and the admin panel
+> gained a role schema. Sections 1-3 below were updated; §4 is now partly
+> out of date and is flagged inline.
 
 Read this before touching the admin panel or the sync layer. It records what
 exists, what is deliberately unfinished, and what is already built but never
@@ -26,6 +37,8 @@ All six admin requirements and use cases UC-18, UC-19, UC-20.
 | Req 6 / UC-20 — logout | `confirmAdminLogout()` in `lib/views/admin/widgets/admin_scaffold.dart` |
 | Statistics data | `lib/models/admin_stats.dart`, `admin_stats_repository.dart`, `firestore_admin_stats_repository.dart`, `local_admin_stats_repository.dart` |
 | Admin read rules | `firestore.rules` |
+| Admin role schema (2026-08-26) | `lib/models/admin_role.dart`, `lib/models/admin_user.dart`, `lib/services/firebase/admin_user_firestore_service.dart` |
+| Firebase connection seam (2026-08-26) | `lib/core/config/firebase_web_options.dart`, `docs/FIREBASE_ADMIN_SETUP.md` |
 
 **Important:** the admin panel was **not** greenfield. A dashboard, an 803-line
 content CRUD page with a draft/review/published workflow, `AuthorizedAdminContentRepository`
@@ -36,13 +49,16 @@ that. Check what exists before building anything "new".
 
 Parent login screen → **Admin login** link → `/admin/login`.
 
-Demo mode credentials (seeded in `InMemoryAdminAuthRepository`, demo only):
+Demo mode seeds one admin per role (all password `Admin@123`):
 
 ```
-admin@littlelearners.local / Admin@123
+admin@littlelearners.local     superAdmin
+content@littlelearners.local   contentAdmin
+viewer@littlelearners.local    analyticsViewer
 ```
 
-Firebase mode: set `parents/{uid}.role` to `admin` from a trusted console.
+Firebase mode: create an `adminUsers/{uid}` document. Full steps and the schema
+are in **`docs/FIREBASE_ADMIN_SETUP.md`**.
 
 ---
 
@@ -66,6 +82,18 @@ with permission-denied. Admins now have read access to `parents`,
 are evaluated against wildcard matches, not the nested paths. Writes are
 unchanged and stay parent-only.
 
+**Admin identity lives in its own `adminUsers` collection** (2026-08-26). It used
+to be `parents/{uid}.role == 'admin'`, which forced a back-office user to also
+be a family and gave no way to say "authors content but must not see parent
+emails". Three role ids — `superAdmin`, `contentAdmin`, `analyticsViewer` — are
+enforced in the role enum, the authorization decorator and `firestore.rules`.
+
+Two choices worth not undoing: an **unknown role denies access** rather than
+defaulting to something permissive, so a console typo locks out instead of
+granting; and **`adminUsers` is not writable from any client**, or an admin
+could promote themselves. `parents/{uid}.role == 'admin'` still works, mapped
+to `contentAdmin`, behind `allowLegacyParentRole` in `app.dart`.
+
 **`moduleId` on `MediaAsset` is nullable.** The storage layer stays usable for
 app-wide assets (splash art, Koala Guide audio). The "media belongs to a module"
 rule is enforced in the admin upload path, which is where UC-19 scopes it.
@@ -86,7 +114,11 @@ any demo or release.**
 
 Why it could not be tested here: Firebase project `little-learner-9d2f1` has
 only an Android app registered (no web app), and this machine has no Android
-SDK. See §5.
+SDK. See §5 and `docs/FIREBASE_ADMIN_SETUP.md`.
+
+As of 2026-08-26 this also covers `AdminUserFirestoreService` and the
+`adminUsers` rules. The demo-mode equivalents are tested; the Firestore reads
+are not.
 
 ### 3.2 A published module can still have no levels
 
@@ -114,16 +146,36 @@ exists, so both numbers measure the same thing.
 For a genuinely clean slate: Chrome DevTools → Application → Storage → Clear
 site data.
 
-### 3.4 A behaviour change was made deliberately
+### 3.4 The parent-dashboard admin button
 
-The admin shortcut on the profile-selection screen was **removed**. It routed a
-parent-session admin through the parental lock into the dashboard; under
-separate sessions that dead-ends at "Access Denied".
+Originally removed here for UC-18, then **re-added and restyled upstream**
+(`profile_selection_page.dart` is now `parent_dashboard_page.dart`). The merge
+kept the team's button but repointed it at the **admin login** instead of
+dropping an authenticated parent into the dashboard, which would have
+dead-ended at "Access Denied".
 
-**If the client expects an admin to reach the portal while signed in as a
-parent, that conflicts with UC-18 and needs a decision.**
+**If the client expects an admin to reach the portal without re-authenticating,
+that conflicts with UC-18 and needs a decision.**
 
-### 3.5 An earlier defect worth not repeating
+### 3.5 Content admins cannot see parent accounts
+
+A deliberate least-privilege call, not an oversight: the parent account list
+carries parent email addresses, so it is `superAdmin` only. If the team expects
+content admins to see it, change `AdminRole.canViewParentAccounts` and the
+`canReadParentAccounts()` rule together — the client and the rules must agree.
+
+### 3.6 Eight tests fail, and they are not from this branch
+
+`child_avatar_picker_test.dart` (4) and `onboarding_pages_widget_test.dart` (4)
+fail with one root cause: a *"ListTile background color or ink splashes may be
+invisible"* framework assertion in upstream's own UI.
+
+**Verified pre-existing** by running both files against a clean checkout of
+upstream `main`, where they fail identically. Most likely a Flutter version
+difference — this machine is on 3.44.8. Left alone rather than changing the
+team's UI on a guess.
+
+### 3.7 An earlier defect worth not repeating
 
 The first version of `InMemoryAdminStatsRepository` returned **hardcoded demo
 numbers** (3 parents / 6 children / 18 quizzes) that never changed regardless of
@@ -139,8 +191,20 @@ number.
 
 ## 4. Already built but never called — do not rebuild
 
-Found during a connection audit on 2026-08-05. All of this is complete, tested
-code that the running app never reaches.
+Originally audited 2026-08-05, **re-checked after the upstream merge on
+2026-08-26**. Two gaps have since been closed by the team; the rest still
+stand.
+
+**Closed upstream — do not re-report:**
+
+- `NotificationDeliveryRepository` is now wired. Upstream added
+  `views/notifications/notification_center_page.dart` and
+  `NotificationViewModel`, plus local scheduling via
+  `flutter_local_notifications`.
+- `ParentRemindersPage` is now reachable, from the notification centre.
+
+The rest below is still complete, tested code that the running app never
+reaches.
 
 ### 4.1 `BackendSyncCoordinator` is never invoked — highest priority
 
@@ -159,23 +223,20 @@ coordination.
 
 This is the single highest-value gap in the app.
 
-### 4.2 Three complete screens are unreachable
+### 4.2 Two screens are still unreachable
 
-Routed in `app_router.dart`, never navigated to:
+Routed in `app_router.dart`, never navigated to (re-verified 2026-08-26):
 
-| Screen | Lines | Note |
-|---|---|---|
-| `LeaderboardPage` | 408 | A leaderboard tab is embedded in `profile_selection_page` instead |
-| `LearnerDetailPage` | 186 | Only reachable from `LeaderboardPage`, so transitively dead |
-| `ParentRemindersPage` | 325 | No entry point at all, despite a full viewmodel + Firestore repository |
+| Screen | Note |
+|---|---|
+| `LeaderboardPage` | A leaderboard tab is embedded in the parent dashboard instead |
+| `LearnerDetailPage` | Only reachable from `LeaderboardPage`, so transitively dead |
 
-### 4.3 Backends with no UI
+### 4.3 Backend with no UI
 
-- **`NotificationDeliveryRepository`** — nothing converts a due reminder into a
-  delivery, so the notification half of reminders never runs.
 - **`AdminKoalaGuideRepository`** — full CRUD, Firestore repo, sync service and
-  authorization wrapper, but **no admin screen**. This is admin-domain work and
-  the most obvious next piece of the panel.
+  authorization wrapper, but **no admin screen** (still true on 2026-08-26).
+  This is admin-domain work and the most obvious next piece of the panel.
 
 ---
 
@@ -229,7 +290,7 @@ Older tutorials will mislead you.
 | Check | Result |
 |---|---|
 | `flutter analyze` | No issues |
-| `flutter test` | **147 passing** (was 121 before this work) |
+| `flutter test` | **290 passing, 8 failing** — all 8 pre-existing upstream, see §3.6 |
 | `flutter build web` | Succeeds |
 | Runs in Chrome, demo mode | Verified, no runtime exceptions |
 | Runs against Firebase | **Never attempted** — see §3.1 |
@@ -238,16 +299,24 @@ Older tutorials will mislead you.
 Intermediate commits are grouped as coherent thematic units for reviewability;
 the **final branch state** is what was verified above.
 
+The 8 failures were confirmed pre-existing by checking out upstream `main` in a
+separate worktree and running the same two files there, where they fail
+identically. Do not assume a green run means they were fixed — re-check against
+`main` before attributing them to this branch.
+
 ---
 
 ## 8. Suggested next steps
 
-1. **Wire `BackendSyncCoordinator`** (§4.1). Already built and tested;
+1. **Register the Firebase web app and create the first `adminUsers` document**
+   — `docs/FIREBASE_ADMIN_SETUP.md`. Nothing about the Firebase admin path can
+   be trusted until it has run once.
+2. **Wire `BackendSyncCoordinator`** (§4.1). Already built and tested;
    implements the principle the client called out as key.
-2. **Register the Firebase web app** (§5) so a third of the admin panel stops
-   being untested code.
 3. **Add the Koala Guide admin screen** (§4.3) — backend complete, admin-domain.
 4. Decide on the unreachable screens (§4.2): wire them up or delete them.
+5. Investigate the 8 pre-existing test failures (§3.6) — likely a Flutter
+   version mismatch between this machine and the team's.
 
 Deferred by the project owner, explicitly *not* now:
 
