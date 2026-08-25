@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:little_learners/models/admin_role.dart';
 import 'package:little_learners/models/admin_stats.dart';
 import 'package:little_learners/repositories/admin_auth_repository.dart';
 import 'package:little_learners/repositories/admin_authorization_repository.dart';
@@ -51,7 +52,13 @@ void main() {
 
     test('allows metric reads for a signed-in admin', () async {
       final adminAuth = InMemoryAdminAuthRepository(
-        adminCredentials: const {'admin@example.com': 'Secret1!'},
+        admins: const {
+          'admin@example.com': (
+            password: 'Secret1!',
+            role: AdminRole.superAdmin,
+            isActive: true,
+          ),
+        },
       );
       await adminAuth.signIn(
         email: 'admin@example.com',

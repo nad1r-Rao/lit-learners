@@ -71,11 +71,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Admin Portal',
+                      adminAuth.admin?.role.label ?? 'Admin Portal',
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                     Text(
-                      adminAuth.admin?.email ?? 'Admin',
+                      adminAuth.admin?.displayLabel ?? 'Admin',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context)
@@ -109,26 +109,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 10),
-            _AdminMenuTile(
-              title: 'Manage Content',
-              subtitle: 'Modules, levels, quizzes and media',
-              icon: Icons.book_outlined,
-              iconColor: AppColors.sky,
-              backgroundColor: const Color(0xFFE6F1FB),
-              onTap: () =>
-                  Navigator.of(context).pushNamed(RouteNames.adminContent),
-            ),
-            const SizedBox(height: 10),
-            _AdminMenuTile(
-              title: 'View Parent Accounts',
-              subtitle: 'Registered parents (monitoring only)',
-              icon: Icons.family_restroom_outlined,
-              iconColor: AppColors.plum,
-              backgroundColor: const Color(0xFFEEEDFE),
-              onTap: () => Navigator.of(context)
-                  .pushNamed(RouteNames.adminParentAccounts),
-            ),
-            const SizedBox(height: 10),
+            // Each entry is hidden rather than disabled when the role cannot
+            // use it, so the menu shows only what this admin can actually do.
+            if (adminAuth.admin?.canManageContent ?? false) ...[
+              _AdminMenuTile(
+                title: 'Manage Content',
+                subtitle: 'Modules, levels, quizzes and media',
+                icon: Icons.book_outlined,
+                iconColor: AppColors.sky,
+                backgroundColor: const Color(0xFFE6F1FB),
+                onTap: () =>
+                    Navigator.of(context).pushNamed(RouteNames.adminContent),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (adminAuth.admin?.canViewParentAccounts ?? false) ...[
+              _AdminMenuTile(
+                title: 'View Parent Accounts',
+                subtitle: 'Registered parents (monitoring only)',
+                icon: Icons.family_restroom_outlined,
+                iconColor: AppColors.plum,
+                backgroundColor: const Color(0xFFEEEDFE),
+                onTap: () => Navigator.of(context)
+                    .pushNamed(RouteNames.adminParentAccounts),
+              ),
+              const SizedBox(height: 10),
+            ],
             _AdminMenuTile(
               title: 'View Progress Statistics',
               subtitle: 'Module usage and level completion',

@@ -101,17 +101,15 @@ class AuthorizedAdminStatsRepository implements AdminStatsRepository {
   final AdminAuthorizationRepository _authorizationRepository;
 
   @override
-  Future<AdminStats> loadStats() {
-    return _authorized(_delegate.loadStats);
+  Future<AdminStats> loadStats() async {
+    await _authorizationRepository.requireStatisticsAccess();
+    return _delegate.loadStats();
   }
 
   @override
-  Future<List<AdminParentAccountSummary>> loadParentAccounts() {
-    return _authorized(_delegate.loadParentAccounts);
-  }
-
-  Future<T> _authorized<T>(Future<T> Function() action) async {
-    await _authorizationRepository.requireContentAdmin();
-    return action();
+  Future<List<AdminParentAccountSummary>> loadParentAccounts() async {
+    // Narrower than statistics: this list carries parent emails.
+    await _authorizationRepository.requireParentAccountAccess();
+    return _delegate.loadParentAccounts();
   }
 }

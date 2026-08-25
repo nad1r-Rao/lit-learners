@@ -164,7 +164,7 @@ class _AdminMediaPageState extends State<AdminMediaPage> {
       return;
     }
 
-    final adminId = context.read<AdminAuthViewModel>().admin?.id ?? '';
+    final adminId = context.read<AdminAuthViewModel>().admin?.uid ?? '';
     final success = await context.read<AdminMediaViewModel>().upload(
           adminId: adminId,
           moduleId: selection.moduleId,
