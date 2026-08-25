@@ -42,59 +42,43 @@ class _AdminProgressStatisticsPageState
 
     return AdminScaffold(
       title: 'Progress Statistics',
+      subtitle: 'Across every learner',
       actions: [
-        IconButton(
+        AdminHeaderAction(
           tooltip: 'Refresh',
+          icon: Icons.refresh,
           onPressed: viewModel.isLoading
               ? null
               : () => context.read<AdminStatsViewModel>().load(),
-          icon: const Icon(Icons.refresh),
         ),
       ],
       child: viewModel.isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               children: [
                 if (viewModel.errorMessage != null) ...[
-                  Card(
-                    color: const Color(0xFFFFEAE7),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline,
-                              color: AppColors.coral),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(viewModel.errorMessage!)),
-                        ],
-                      ),
-                    ),
-                  ),
+                  AdminInlineError(message: viewModel.errorMessage!),
                   const SizedBox(height: 12),
                 ],
-                Text(
-                  'System Usage',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900),
-                ),
+                _CompletionSummary(stats: stats),
+                const SizedBox(height: 18),
+                const AdminSectionHeading(title: 'System Usage'),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
                       child: AdminMetricTile(
-                        icon: Icons.people_outline,
+                        icon: Icons.people_alt_rounded,
                         label: 'Registered parents',
                         value: '${stats.totalParentAccounts}',
                         accent: AppColors.plum,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: AdminMetricTile(
-                        icon: Icons.child_care_outlined,
+                        icon: Icons.child_care_rounded,
                         label: 'Child profiles',
                         value: '${stats.totalChildProfiles}',
                         accent: AppColors.aqua,
@@ -102,21 +86,21 @@ class _AdminProgressStatisticsPageState
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
                       child: AdminMetricTile(
-                        icon: Icons.widgets_outlined,
+                        icon: Icons.widgets_rounded,
                         label: 'Modules',
                         value: '${stats.totalModules}',
                         accent: AppColors.sky,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: AdminMetricTile(
-                        icon: Icons.map_outlined,
+                        icon: Icons.map_rounded,
                         label: 'Levels',
                         value: '${stats.totalLevels}',
                         accent: AppColors.forest,
@@ -124,57 +108,114 @@ class _AdminProgressStatisticsPageState
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
                       child: AdminMetricTile(
-                        icon: Icons.task_alt_outlined,
+                        icon: Icons.task_alt_rounded,
                         label: 'Levels completed',
                         value: '${stats.completedLevelCount}',
                         accent: AppColors.leaf,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: AdminMetricTile(
-                        icon: Icons.percent_outlined,
-                        label: 'Completion rate',
-                        value: _percent(stats.completionRate),
+                        icon: Icons.play_circle_rounded,
+                        label: 'Levels attempted',
+                        value: '${stats.attemptedLevelCount}',
                         accent: AppColors.honey,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 18),
-                Text(
-                  'Module Usage',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Level attempts and completions recorded across all learners.',
-                  style: Theme.of(context).textTheme.bodySmall,
+                const AdminSectionHeading(
+                  title: 'Module Usage',
+                  subtitle: 'Level attempts and completions recorded across '
+                      'all learners.',
                 ),
                 const SizedBox(height: 10),
                 if (stats.moduleUsage.isEmpty)
-                  const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(
-                        child: Text('No learning activity recorded yet.'),
-                      ),
-                    ),
+                  const AdminEmptyState(
+                    icon: Icons.insights_rounded,
+                    title: 'No learning activity yet',
+                    message: 'Usage appears here once children start playing '
+                        'through the levels.',
                   )
                 else
                   ...stats.moduleUsage.map(
-                    (usage) => _ModuleUsageCard(usage: usage),
+                    (usage) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _ModuleUsageCard(usage: usage),
+                    ),
                   ),
               ],
             ),
+    );
+  }
+}
+
+/// Overall completion, given the prominence the headline number deserves.
+///
+/// Not the rich charts that are still on the backlog — just the one figure the
+/// rest of the screen breaks down.
+class _CompletionSummary extends StatelessWidget {
+  const _CompletionSummary({required this.stats});
+
+  final AdminStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = stats.completionRate;
+
+    return AdminSoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const AdminIconChip(
+                icon: Icons.donut_large_rounded,
+                color: AppColors.violet,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Overall completion',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${stats.completedLevelCount} of '
+                      '${stats.attemptedLevelCount} attempted levels finished',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.ink.withValues(alpha: 0.66),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                _percent(rate),
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          AdminProgressBar(value: rate, minHeight: 8),
+        ],
+      ),
     );
   }
 }
@@ -184,100 +225,93 @@ class _ModuleUsageCard extends StatelessWidget {
 
   final AdminModuleUsage usage;
 
+  /// Stable per-module accent, so a module keeps its colour between reloads
+  /// rather than shifting with list order.
+  Color get _accent {
+    const palette = [
+      AppColors.sky,
+      AppColors.leaf,
+      AppColors.plum,
+      AppColors.coral,
+      AppColors.aqua,
+      AppColors.honey,
+      AppColors.rose,
+      AppColors.violet,
+    ];
+    return palette[usage.moduleId.hashCode.abs() % palette.length];
+  }
+
   @override
   Widget build(BuildContext context) {
     final textDirection = LearningTextDirection.forText(usage.moduleTitle);
+    final accent = _accent;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Directionality(
-                    textDirection: textDirection,
-                    child: Text(
+    return AdminSoftCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AdminIconChip(
+                icon: Icons.auto_stories_rounded,
+                color: accent,
+                size: 38,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Directionality(
+                  textDirection: textDirection,
+                  child: Text(
+                    usage.moduleTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: LearningTextDirection.styleForText(
+                      Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
                       usage.moduleTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: LearningTextDirection.styleForText(
-                        Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                        usage.moduleTitle,
-                      ),
                     ),
                   ),
                 ),
-                Text(
-                  _percent(usage.completionRate),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: usage.completionRate.clamp(0.0, 1.0),
-                minHeight: 8,
-                backgroundColor: AppColors.line,
               ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _UsageChip(
-                  icon: Icons.play_circle_outline,
-                  label: '${usage.attemptedLevelCount} attempted',
+              const SizedBox(width: 8),
+              Text(
+                _percent(usage.completionRate),
+                style: TextStyle(
+                  color: accent,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
                 ),
-                _UsageChip(
-                  icon: Icons.task_alt_outlined,
-                  label: '${usage.completedLevelCount} completed',
-                ),
-                _UsageChip(
-                  icon: Icons.groups_outlined,
-                  label: '${usage.learnersEngaged} learners',
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _UsageChip extends StatelessWidget {
-  const _UsageChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.cloud,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16),
-            const SizedBox(width: 6),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          AdminProgressBar(value: usage.completionRate, color: accent),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              AdminPill(
+                icon: Icons.play_circle_rounded,
+                label: '${usage.attemptedLevelCount} attempted',
+                accent: AppColors.sky,
+              ),
+              AdminPill(
+                icon: Icons.task_alt_rounded,
+                label: '${usage.completedLevelCount} completed',
+                accent: AppColors.leaf,
+              ),
+              AdminPill(
+                icon: Icons.groups_rounded,
+                label: '${usage.learnersEngaged} learners',
+                accent: AppColors.plum,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -42,51 +42,39 @@ class _AdminParentAccountsPageState extends State<AdminParentAccountsPage> {
 
     return AdminScaffold(
       title: 'Parent Accounts',
+      subtitle: 'Monitoring only',
       actions: [
-        IconButton(
+        AdminHeaderAction(
           tooltip: 'Refresh',
+          icon: Icons.refresh,
           onPressed: stats.isLoading
               ? null
               : () => context.read<AdminStatsViewModel>().load(),
-          icon: const Icon(Icons.refresh),
         ),
       ],
       child: stats.isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               children: [
                 if (stats.errorMessage != null) ...[
-                  Card(
-                    color: const Color(0xFFFFEAE7),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline,
-                              color: AppColors.coral),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(stats.errorMessage!)),
-                        ],
-                      ),
-                    ),
-                  ),
+                  AdminInlineError(message: stats.errorMessage!),
                   const SizedBox(height: 12),
                 ],
                 Row(
                   children: [
                     Expanded(
                       child: AdminMetricTile(
-                        icon: Icons.people_outline,
+                        icon: Icons.people_alt_rounded,
                         label: 'Parent accounts',
                         value: '${stats.stats.totalParentAccounts}',
                         accent: AppColors.plum,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: AdminMetricTile(
-                        icon: Icons.child_care_outlined,
+                        icon: Icons.child_care_rounded,
                         label: 'Child profiles',
                         value: '${stats.stats.totalChildProfiles}',
                         accent: AppColors.aqua,
@@ -95,31 +83,26 @@ class _AdminParentAccountsPageState extends State<AdminParentAccountsPage> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                Text(
-                  'Registered Parents',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'View only. Accounts cannot be edited or removed here.',
-                  style: Theme.of(context).textTheme.bodySmall,
+                const AdminSectionHeading(
+                  title: 'Registered Parents',
+                  subtitle:
+                      'View only. Accounts cannot be edited or removed here.',
                 ),
                 const SizedBox(height: 10),
                 if (accounts.isEmpty)
-                  const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(
-                        child: Text('No parent accounts registered yet.'),
-                      ),
-                    ),
+                  const AdminEmptyState(
+                    icon: Icons.family_restroom_rounded,
+                    title: 'No parent accounts yet',
+                    message:
+                        'Accounts appear here as soon as a parent registers '
+                        'in the app.',
                   )
                 else
                   ...accounts.map(
-                    (account) => _ParentAccountTile(account: account),
+                    (account) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _ParentAccountTile(account: account),
+                    ),
                   ),
               ],
             ),
@@ -135,28 +118,50 @@ class _ParentAccountTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final createdAt = account.createdAt;
-    return Card(
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFFEEEDFE),
-          child: Icon(Icons.person_outline, color: AppColors.plum),
-        ),
-        title: Text(
-          account.email,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(
-          createdAt == null
-              ? '${account.childProfileCount} child profile(s)'
-              : '${account.childProfileCount} child profile(s) · joined '
-                  '${createdAt.year}-${_two(createdAt.month)}-${_two(createdAt.day)}',
-        ),
-        trailing: Chip(
-          label: Text('${account.childProfileCount}'),
-          backgroundColor: const Color(0xFFE1F5EE),
-        ),
+
+    return AdminSoftCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          const AdminIconChip(
+            icon: Icons.person_rounded,
+            color: AppColors.plum,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  account.email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    AdminPill(
+                      icon: Icons.child_care_rounded,
+                      label: '${account.childProfileCount} '
+                          '${account.childProfileCount == 1 ? 'child' : 'children'}',
+                      accent: AppColors.aqua,
+                    ),
+                    if (createdAt != null)
+                      AdminPill(
+                        icon: Icons.calendar_today_rounded,
+                        label: 'Joined ${createdAt.year}-'
+                            '${_two(createdAt.month)}-${_two(createdAt.day)}',
+                        accent: AppColors.violet,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
