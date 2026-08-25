@@ -1,6 +1,9 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/config/app_config.dart';
+import '../../core/constants/app_colors.dart';
 import '../../core/routing/route_names.dart';
 import '../../viewmodels/admin_auth_viewmodel.dart';
 import '../../viewmodels/admin_stats_viewmodel.dart';
@@ -68,6 +71,10 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
               ),
               onSubmitted: (_) => _submit(context),
             ),
+            if (!_isFirebaseLive) ...[
+              const SizedBox(height: 14),
+              const _LocalDataNotice(),
+            ],
             if (adminAuth.errorMessage != null) ...[
               const SizedBox(height: 12),
               AuthMessageBanner(message: adminAuth.errorMessage!),
@@ -92,6 +99,10 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     );
   }
 
+  /// Firebase is only really live when it both was asked for and started.
+  bool get _isFirebaseLive =>
+      AppConfig.useFirebase && Firebase.apps.isNotEmpty;
+
   Future<void> _submit(BuildContext context) async {
     final adminAuth = context.read<AdminAuthViewModel>();
     final success = await adminAuth.signIn(
@@ -103,5 +114,46 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     // Metrics are per-session; drop anything a previous admin loaded.
     context.read<AdminStatsViewModel>().reset();
     await Navigator.of(context).pushReplacementNamed(RouteNames.adminDashboard);
+  }
+}
+
+/// Says plainly that the portal is not talking to Firebase.
+///
+/// Without this the demo repositories look exactly like a working backend:
+/// content saves, statistics render, and nothing reaches the project.
+class _LocalDataNotice extends StatelessWidget {
+  const _LocalDataNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.lemon,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.honey),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.cloud_off_outlined, size: 20, color: AppColors.ink),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Not connected to Firebase. Anything you change here stays on '
+                'this device and is lost on reload.',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
