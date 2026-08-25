@@ -5,24 +5,41 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/routing/route_names.dart';
 import '../../../viewmodels/admin_auth_viewmodel.dart';
 import '../../../viewmodels/admin_stats_viewmodel.dart';
+import 'admin_theme.dart';
+
+// Re-exported so an admin screen only has to import the scaffold to get the
+// whole visual vocabulary.
+export 'admin_theme.dart';
 
 /// Shared chrome for admin screens.
 ///
 /// Guards every page behind the admin session so a deep link cannot bypass
 /// UC-18, and hosts the UC-20 logout affordance.
+///
+/// The header is the same grape/violet gradient the parent dashboard uses, so
+/// crossing into the admin area does not look like leaving the app.
 class AdminScaffold extends StatelessWidget {
   const AdminScaffold({
     super.key,
     required this.title,
     required this.child,
+    this.subtitle,
     this.actions = const [],
     this.showLogout = false,
     this.floatingActionButton,
   });
 
   final String title;
+
+  /// Second line under the title, for saying what the screen is for.
+  final String? subtitle;
+
   final Widget child;
+
+  /// Icon actions. Rendered on a translucent white chip so a bare white glyph
+  /// does not vanish into the light end of the gradient.
   final List<Widget> actions;
+
   final bool showLogout;
   final Widget? floatingActionButton;
 
@@ -35,22 +52,98 @@ class AdminScaffold extends StatelessWidget {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.cloud,
       appBar: AppBar(
-        title: Text(title),
+        toolbarHeight: 72,
+        backgroundColor: AppColors.grape,
+        foregroundColor: Colors.white,
+        // A childless `DecoratedBox` collapses to zero height under the app
+        // bar's loose constraints, which leaves the gradient invisible;
+        // `Container` expands into them instead.
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AdminPalette.headerGradient,
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
         actions: [
           ...actions,
-          if (showLogout)
-            IconButton(
+          if (showLogout) ...[
+            const SizedBox(width: 4),
+            IconButton.filled(
               tooltip: 'Log out',
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.coral,
+                foregroundColor: Colors.white,
+              ),
               onPressed: adminAuth.isLoading
                   ? null
                   : () => confirmAdminLogout(context),
               icon: const Icon(Icons.logout_rounded),
             ),
+          ],
+          const SizedBox(width: 12),
         ],
       ),
       body: SafeArea(child: child),
       floatingActionButton: floatingActionButton,
+    );
+  }
+}
+
+/// Header action styled to stay legible on the gradient.
+class AdminHeaderAction extends StatelessWidget {
+  const AdminHeaderAction({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton.filled(
+      tooltip: tooltip,
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.white.withValues(alpha: 0.16),
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: Colors.white.withValues(alpha: 0.08),
+        disabledForegroundColor: Colors.white54,
+      ),
+      onPressed: onPressed,
+      icon: Icon(icon),
     );
   }
 }
@@ -60,16 +153,28 @@ Future<void> confirmAdminLogout(BuildContext context) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
+      icon: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: AppColors.coral.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.logout_rounded, color: AppColors.coral),
+      ),
       title: const Text('Log out?'),
       content: const Text(
         'This will end your admin session and return you to the login screen.',
+        textAlign: TextAlign.center,
       ),
+      actionsAlignment: MainAxisAlignment.center,
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
           child: const Text('No'),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.coral),
           onPressed: () => Navigator.of(dialogContext).pop(true),
           child: const Text('Yes, log out'),
         ),
@@ -116,86 +221,69 @@ class AdminAccessDenied extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.cloud,
       body: SafeArea(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.lock_outline, size: 48, color: AppColors.coral),
-                const SizedBox(height: 12),
-                Text(
-                  'Access Denied: Admin Rights Required',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: AdminSoftCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 26,
                 ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () => Navigator.of(context)
-                      .pushNamedAndRemoveUntil(
-                        RouteNames.adminLogin,
-                        (route) => false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: AppColors.coral.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                  child: const Text('Go to admin login'),
+                      child: const Icon(
+                        Icons.lock_outline,
+                        size: 30,
+                        color: AppColors.coral,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Access Denied: Admin Rights Required',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Sign in with an admin account to open this screen.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.ink.withValues(alpha: 0.66),
+                          ),
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () =>
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                          RouteNames.adminLogin,
+                          (route) => false,
+                        ),
+                        icon: const Icon(Icons.login_rounded, size: 20),
+                        label: const Text('Go to admin login'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Compact metric tile shared by the dashboard and statistics screens.
-class AdminMetricTile extends StatelessWidget {
-  const AdminMetricTile({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.accent = AppColors.sky,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.cloud,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Icon(icon, size: 22, color: accent),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    value,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  Text(label, style: Theme.of(context).textTheme.bodySmall),
-                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
