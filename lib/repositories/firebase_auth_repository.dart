@@ -46,6 +46,15 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<ParentAccount> signInWithGoogle() async {
+    final parent = await _authService.signInWithGoogle();
+    if (parent == null) {
+      throw const GoogleSignInCancelled();
+    }
+    return _parentRemoteDataSource.ensureParentDocument(parent);
+  }
+
+  @override
   Future<void> sendPasswordReset(String email) {
     return _authService.sendPasswordReset(email);
   }

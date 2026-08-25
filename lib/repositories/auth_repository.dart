@@ -10,7 +10,12 @@ abstract class AuthRepository {
     required String email,
     required String password,
   });
+  Future<ParentAccount> signInWithGoogle();
+
+  /// Mails the parent a reset link. Firebase owns the rest of the flow: the
+  /// link opens Firebase's own page, and the app never sees the new password.
   Future<void> sendPasswordReset(String email);
+
   Future<void> signOut();
 }
 
@@ -21,6 +26,13 @@ class AuthException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Thrown when the parent closes the Google account chooser. Separate from a
+/// plain [AuthException] so the UI can stay quiet instead of showing an error
+/// for something the parent did deliberately.
+class GoogleSignInCancelled extends AuthException {
+  const GoogleSignInCancelled() : super('Google sign-in was cancelled.');
 }
 
 /// Optional capability for enumerating registered accounts.
@@ -43,6 +55,10 @@ class InMemoryAuthRepository implements AuthRepository, ParentDirectory {
   final Map<String, _StoredParent> _parentsByEmail = {};
   final Set<String> _adminEmails;
   ParentAccount? _currentParent;
+
+  /// Emails a reset was asked for, so a test can assert the call happened
+  /// without a mail server.
+  final List<String> passwordResetEmails = [];
 
   @override
   Future<ParentAccount?> currentParent() async => _currentParent;
@@ -94,11 +110,35 @@ class InMemoryAuthRepository implements AuthRepository, ParentDirectory {
   }
 
   @override
+  Future<ParentAccount> signInWithGoogle() async {
+    const normalizedEmail = 'google.parent@littlelearners.local';
+    final stored = _parentsByEmail[normalizedEmail];
+    if (stored != null) {
+      _currentParent = stored.account;
+      return stored.account;
+    }
+
+    final account = ParentAccount(
+      id: 'parent-google-${DateTime.now().microsecondsSinceEpoch}',
+      email: normalizedEmail,
+      createdAt: DateTime.now(),
+      role: _roleFor(normalizedEmail),
+    );
+    _parentsByEmail[normalizedEmail] = _StoredParent(
+      account: account,
+      password: '',
+    );
+    _currentParent = account;
+    return account;
+  }
+
+  @override
   Future<void> sendPasswordReset(String email) async {
     final normalizedEmail = email.trim().toLowerCase();
     if (!_parentsByEmail.containsKey(normalizedEmail)) {
       throw const AuthException('No account found for this email.');
     }
+    passwordResetEmails.add(normalizedEmail);
   }
 
   @override
@@ -122,3 +162,4 @@ class _StoredParent {
   final ParentAccount account;
   final String password;
 }
+

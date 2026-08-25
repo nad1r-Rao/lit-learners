@@ -44,6 +44,16 @@ class LocalDbHelper {
             await db.execute(statement);
           }
         }
+        if (oldVersion < 5) {
+          for (final statement in LocalDbSchema.version5Statements) {
+            await db.execute(statement);
+          }
+        }
+        if (oldVersion < 6) {
+          for (final statement in LocalDbSchema.version6Statements) {
+            await db.execute(statement);
+          }
+        }
       },
     );
     _database = opened;

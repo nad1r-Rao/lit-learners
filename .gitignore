@@ -10,3 +10,4 @@ ios/Flutter/flutter_export_environment.sh
 *.iml
 .idea/
 .vscode/
+android/.kotlin/

@@ -17,6 +17,39 @@ void main() {
       expect(viewModel.isLocked, isFalse);
     });
 
+    test('a fresh challenge is not the same sum every time', () async {
+      final repository = InMemoryParentalLockRepository();
+
+      final prompts = <String>{};
+      for (var attempt = 0; attempt < 20; attempt++) {
+        prompts.add((await repository.createChallenge()).prompt);
+      }
+
+      // Two draws can repeat; twenty identical ones would mean the generator
+      // is pinned to a fixed seed again.
+      expect(prompts.length, greaterThan(1));
+    });
+
+    test('the first challenge differs between installs', () async {
+      final first = await InMemoryParentalLockRepository(seed: 1)
+          .createChallenge();
+      final second = await InMemoryParentalLockRepository(seed: 2)
+          .createChallenge();
+
+      expect(first.prompt, isNot(second.prompt));
+    });
+
+    test('the answer solves the sum it prints', () async {
+      final challenge =
+          await InMemoryParentalLockRepository(seed: 42).createChallenge();
+
+      final operands = RegExp(r'(\d+) \+ (\d+)').firstMatch(challenge.prompt)!;
+      expect(
+        int.parse(operands.group(1)!) + int.parse(operands.group(2)!),
+        challenge.answer,
+      );
+    });
+
     test('locks after three failed attempts', () async {
       final viewModel = ParentalLockViewModel(InMemoryParentalLockRepository());
       addTearDown(viewModel.dispose);

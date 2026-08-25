@@ -92,6 +92,12 @@ class _LoginPageState extends State<LoginPage> {
               label: auth.isLoading ? 'Signing in...' : 'Sign in',
               onPressed: auth.isLoading ? null : () => _submit(context),
             ),
+            const SizedBox(height: 14),
+            const AuthOrDivider(),
+            const SizedBox(height: 14),
+            AuthGoogleButton(
+              onPressed: auth.isLoading ? null : () => _submitGoogle(context),
+            ),
             const SizedBox(height: 10),
             Wrap(
               alignment: WrapAlignment.center,
@@ -135,6 +141,17 @@ class _LoginPageState extends State<LoginPage> {
       email: _emailController.text,
       password: _passwordController.text,
     );
+    if (!context.mounted || !success || auth.parent == null) return;
+
+    await AuthFlowRouter.routeAfterAuth(
+      context: context,
+      parent: auth.parent!,
+    );
+  }
+
+  Future<void> _submitGoogle(BuildContext context) async {
+    final auth = context.read<AuthViewModel>();
+    final success = await auth.signInWithGoogle();
     if (!context.mounted || !success || auth.parent == null) return;
 
     await AuthFlowRouter.routeAfterAuth(

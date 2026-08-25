@@ -1,3 +1,19 @@
+/// The language a parent reads the guide and the readiness test in.
+///
+/// Only the parent-facing onboarding flow uses this; the child modules pick
+/// their direction from the module itself.
+enum OnboardingLanguage {
+  english,
+  urdu;
+
+  static OnboardingLanguage fromName(String? name) {
+    for (final language in OnboardingLanguage.values) {
+      if (language.name == name) return language;
+    }
+    return OnboardingLanguage.english;
+  }
+}
+
 class ManualPageContent {
   const ManualPageContent({
     required this.title,

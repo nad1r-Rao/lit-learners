@@ -70,6 +70,32 @@ class AuthViewModel extends ChangeNotifier {
     });
   }
 
+  Future<bool> signInWithGoogle() async {
+    _status = AuthFlowStatus.loading;
+    _errorMessage = null;
+    _infoMessage = null;
+    notifyListeners();
+
+    try {
+      _parent = await _authRepository.signInWithGoogle();
+      _status = AuthFlowStatus.authenticated;
+      notifyListeners();
+      return true;
+    } on GoogleSignInCancelled {
+      // Backing out of the chooser is not an error worth showing.
+      _status = _parent == null
+          ? AuthFlowStatus.unauthenticated
+          : AuthFlowStatus.authenticated;
+      notifyListeners();
+      return false;
+    } on AuthException catch (error) {
+      _setError(error.message);
+      return false;
+    }
+  }
+
+  /// Mails a reset link to [email]. Firebase takes it from there — the link
+  /// opens Firebase's own page, so the app never handles the new password.
   Future<bool> sendPasswordReset(String email) async {
     final emailError = Validators.email(email);
     if (emailError != null) {
@@ -82,9 +108,11 @@ class AuthViewModel extends ChangeNotifier {
     _infoMessage = null;
     notifyListeners();
 
+    final normalizedEmail = email.trim().toLowerCase();
     try {
-      await _authRepository.sendPasswordReset(email);
-      _infoMessage = 'Password reset instructions are ready for this account.';
+      await _authRepository.sendPasswordReset(normalizedEmail);
+      _infoMessage = 'Reset link sent to $normalizedEmail. Open it to choose '
+          'a new password, and check your spam folder if it has not arrived.';
       _status = _parent == null
           ? AuthFlowStatus.unauthenticated
           : AuthFlowStatus.authenticated;
@@ -94,6 +122,16 @@ class AuthViewModel extends ChangeNotifier {
       _setError(error.message);
       return false;
     }
+  }
+
+  /// Clears any message left over from an earlier visit to the reset screen.
+  void resetPasswordFlow() {
+    _errorMessage = null;
+    _infoMessage = null;
+    _status = _parent == null
+        ? AuthFlowStatus.unauthenticated
+        : AuthFlowStatus.authenticated;
+    notifyListeners();
   }
 
   Future<void> signOut() async {

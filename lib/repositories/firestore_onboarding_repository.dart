@@ -45,10 +45,16 @@ class FirestoreOnboardingRepository implements OnboardingRepository {
   }
 
   @override
-  Future<List<ManualPageContent>> getManualPages() async => manualPages;
+  Future<List<ManualPageContent>> getManualPages({
+    OnboardingLanguage language = OnboardingLanguage.english,
+  }) async {
+    return manualPagesFor(language);
+  }
 
   @override
-  Future<List<ReadinessQuestion>> getReadinessQuestions() async {
-    return readinessQuestions;
+  Future<List<ReadinessQuestion>> getReadinessQuestions({
+    OnboardingLanguage language = OnboardingLanguage.english,
+  }) async {
+    return readinessQuestionsFor(language);
   }
 }

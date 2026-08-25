@@ -4,6 +4,16 @@ import '../models/learning_module.dart';
 import '../models/quiz_question.dart';
 import '../models/video_lesson.dart';
 
+/// Stamp for the bundled content below.
+///
+/// The local database is seeded once and then read from, so edits here would
+/// otherwise never reach a device that already ran the app. Bumping this string
+/// makes the content repository reinstall the bundle on next launch, keeping
+/// progress and downloaded flags intact.
+///
+/// **Bump this whenever you add, remove or edit anything in this file.**
+const bundledContentRevision = '2026-08-23-portion-ladder';
+
 const seedModules = <LearningModule>[
   LearningModule(
     id: 'math',
@@ -68,11 +78,36 @@ const seedModules = <LearningModule>[
     maxStage: 4,
     order: 7,
   ),
+  // Starts at stage 2: following a dotted line needs steadier hands than a
+  // one-year-old has.
+  LearningModule(
+    id: 'tracing',
+    title: 'Tracing',
+    description: 'Trace letters and numbers along dotted guides.',
+    category: ModuleCategory.tracing,
+    minStage: 2,
+    maxStage: 4,
+    order: 8,
+  ),
 ];
 
-const seedLevels = <LearningLevel>[
+/// Every level the app ships with.
+///
+/// A module is a ladder of levels, each covering one **portion** of that
+/// module's sequence — `A – F`, then `G – L`, and so on. Inside a level the
+/// content items are walked in order, so a child meets A before B before C.
+/// The same portions repeat at every age stage; what changes is the activity
+/// and the wording, so a birthday moves a child up to a harder pass over
+/// letters they already recognise.
+final seedLevels = <LearningLevel>[
+  ..._englishAlphabetLevels(),
+  ..._authoredLevels,
+];
+
+const _authoredLevels = <LearningLevel>[
   LearningLevel(
     id: 'math-stage1-1',
+    portionLabel: '1 – 2',
     moduleId: 'math',
     stage: 1,
     levelNumber: 1,
@@ -98,6 +133,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'math-stage3-1',
+    portionLabel: '1 – 5',
     moduleId: 'math',
     stage: 3,
     levelNumber: 1,
@@ -172,261 +208,8 @@ const seedLevels = <LearningLevel>[
     ],
   ),
   LearningLevel(
-    id: 'english-stage1-1',
-    moduleId: 'english',
-    stage: 1,
-    levelNumber: 1,
-    title: 'Meet A',
-    subtitle: 'Look, listen, and say the first letter.',
-    type: LevelType.flashcards,
-    passingScore: 60,
-    isBundled: true,
-    contentItems: [
-      ContentItem(
-        title: 'A',
-        prompt: 'Listen for A. Open your mouth and say ah.',
-        displayText: 'A',
-        visualLabel: 'Letter A',
-        audioCueKey: 'english_letter_a',
-      ),
-      ContentItem(
-        title: 'Apple',
-        prompt: 'A is for apple. Say apple.',
-        displayText: 'Apple',
-        visualLabel: 'Apple word card',
-        audioCueKey: 'english_apple',
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage2-1',
-    moduleId: 'english',
-    stage: 2,
-    levelNumber: 1,
-    title: 'A and B',
-    subtitle: 'Hear two letter sounds and copy them.',
-    type: LevelType.flashcards,
-    passingScore: 65,
-    isBundled: true,
-    contentItems: [
-      ContentItem(
-        title: 'A',
-        prompt: 'A says ah, like apple.',
-        displayText: 'A',
-        visualLabel: 'Letter A',
-        audioCueKey: 'english_letter_a',
-      ),
-      ContentItem(
-        title: 'B',
-        prompt: 'B says buh, like ball.',
-        displayText: 'B',
-        visualLabel: 'Letter B',
-        audioCueKey: 'english_letter_b',
-      ),
-      ContentItem(
-        title: 'Ball',
-        prompt: 'B is for ball. Say ball.',
-        displayText: 'Ball',
-        visualLabel: 'Ball word card',
-        audioCueKey: 'english_ball',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-stage2-q1',
-        prompt: 'Which letter starts ball?',
-        options: ['A', 'B', 'C'],
-        correctIndex: 1,
-        explanation: 'Ball starts with B.',
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage3-1',
-    moduleId: 'english',
-    stage: 3,
-    levelNumber: 1,
-    title: 'A B C Starters',
-    subtitle: 'Match first letters with familiar words.',
-    type: LevelType.flashcards,
-    passingScore: 70,
-    isBundled: true,
-    contentItems: [
-      ContentItem(
-        title: 'A',
-        prompt: 'A is for apple.',
-        displayText: 'A',
-        visualLabel: 'Apple',
-        audioCueKey: 'english_letter_a',
-      ),
-      ContentItem(
-        title: 'B',
-        prompt: 'B is for ball.',
-        displayText: 'B',
-        visualLabel: 'Ball',
-        audioCueKey: 'english_letter_b',
-      ),
-      ContentItem(
-        title: 'C',
-        prompt: 'C is for cat.',
-        displayText: 'C',
-        visualLabel: 'Cat',
-        audioCueKey: 'english_letter_c',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-abc-q1',
-        prompt: 'Which word starts with A?',
-        options: ['Apple', 'Ball', 'Cat'],
-        correctIndex: 0,
-        explanation: 'Apple starts with A.',
-      ),
-      QuizQuestion(
-        id: 'english-abc-q2',
-        prompt: 'Cat starts with which letter?',
-        options: ['B', 'C', 'A'],
-        correctIndex: 1,
-        explanation: 'Cat starts with C.',
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage3-2',
-    moduleId: 'english',
-    stage: 3,
-    levelNumber: 2,
-    title: 'Sound Match',
-    subtitle: 'Choose the word that begins with each sound.',
-    type: LevelType.matching,
-    passingScore: 70,
-    isBundled: false,
-    contentItems: [
-      ContentItem(
-        title: 'Apple',
-        prompt: 'Pick the word that begins with A.',
-        displayText: 'A',
-        visualLabel: 'A - Apple',
-        audioCueKey: 'english_apple',
-      ),
-      ContentItem(
-        title: 'Ball',
-        prompt: 'Pick the word that begins with B.',
-        displayText: 'B',
-        visualLabel: 'B - Ball',
-        audioCueKey: 'english_ball',
-      ),
-      ContentItem(
-        title: 'Cat',
-        prompt: 'Pick the word that begins with C.',
-        displayText: 'C',
-        visualLabel: 'C - Cat',
-        audioCueKey: 'english_cat',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-match-q1',
-        prompt: 'Which word begins with C?',
-        options: ['Apple', 'Ball', 'Cat'],
-        correctIndex: 2,
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage4-1',
-    moduleId: 'english',
-    stage: 4,
-    levelNumber: 1,
-    title: 'Simple Words',
-    subtitle: 'Blend sounds into short, friendly words.',
-    type: LevelType.matching,
-    passingScore: 75,
-    isBundled: true,
-    contentItems: [
-      ContentItem(
-        title: 'Cat',
-        prompt: 'Blend c-a-t. Say cat.',
-        displayText: 'Cat',
-        visualLabel: 'Cat word card',
-        audioCueKey: 'english_cat',
-      ),
-      ContentItem(
-        title: 'Sun',
-        prompt: 'Blend s-u-n. Say sun.',
-        displayText: 'Sun',
-        visualLabel: 'Sun word card',
-        audioCueKey: 'english_sun',
-      ),
-      ContentItem(
-        title: 'Hat',
-        prompt: 'Blend h-a-t. Say hat.',
-        displayText: 'Hat',
-        visualLabel: 'Hat word card',
-        audioCueKey: 'english_hat',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-simple-q1',
-        prompt: 'Which word ends with the t sound?',
-        options: ['Cat', 'Sun', 'Bee'],
-        correctIndex: 0,
-        explanation: 'Cat ends with t.',
-      ),
-      QuizQuestion(
-        id: 'english-simple-q2',
-        prompt: 'Which word starts with S?',
-        options: ['Hat', 'Sun', 'Cat'],
-        correctIndex: 1,
-        explanation: 'Sun starts with S.',
-      ),
-    ],
-  ),
-  LearningLevel(
-    id: 'english-stage4-2',
-    moduleId: 'english',
-    stage: 4,
-    levelNumber: 2,
-    title: 'Rhyme Time',
-    subtitle: 'Listen for words that sound alike.',
-    type: LevelType.matching,
-    passingScore: 75,
-    isBundled: false,
-    contentItems: [
-      ContentItem(
-        title: 'Cat',
-        prompt: 'Cat rhymes with hat.',
-        displayText: 'Cat',
-        visualLabel: 'Cat and hat',
-        audioCueKey: 'english_cat',
-      ),
-      ContentItem(
-        title: 'Hat',
-        prompt: 'Hat rhymes with cat.',
-        displayText: 'Hat',
-        visualLabel: 'Hat and cat',
-        audioCueKey: 'english_hat',
-      ),
-      ContentItem(
-        title: 'Sun',
-        prompt: 'Sun rhymes with fun.',
-        displayText: 'Sun',
-        visualLabel: 'Sun and fun',
-        audioCueKey: 'english_sun',
-      ),
-    ],
-    quizQuestions: [
-      QuizQuestion(
-        id: 'english-rhyme-q1',
-        prompt: 'Which word rhymes with cat?',
-        options: ['Hat', 'Sun', 'Ball'],
-        correctIndex: 0,
-      ),
-    ],
-  ),
-  LearningLevel(
     id: 'urdu-stage1-1',
+    portionLabel: 'ا',
     moduleId: 'urdu',
     stage: 1,
     levelNumber: 1,
@@ -454,6 +237,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'urdu-stage2-1',
+    portionLabel: 'ا – ب',
     moduleId: 'urdu',
     stage: 2,
     levelNumber: 1,
@@ -488,6 +272,7 @@ const seedLevels = <LearningLevel>[
   ),
   LearningLevel(
     id: 'urdu-stage3-1',
+    portionLabel: 'ا – پ',
     moduleId: 'urdu',
     stage: 3,
     levelNumber: 1,
@@ -1304,7 +1089,7 @@ const seedLevels = <LearningLevel>[
     title: 'Picture Prompts',
     subtitle: 'Build a simple picture from three drawing steps.',
     type: LevelType.drawing,
-    passingScore: 75,
+    passingScore: 70,
     isBundled: true,
     contentItems: [
       ContentItem(
@@ -1354,7 +1139,7 @@ const seedLevels = <LearningLevel>[
     title: 'Color Story',
     subtitle: 'Draw a beginning, middle, and end with colors.',
     type: LevelType.drawing,
-    passingScore: 75,
+    passingScore: 70,
     isBundled: false,
     contentItems: [
       ContentItem(
@@ -1448,4 +1233,522 @@ const seedLevels = <LearningLevel>[
       ),
     ],
   ),
+
+  // Tracing module. `displayText` holds the exact glyph that is drawn as the
+  // dotted guide and graded, so it must be the character itself and nothing
+  // more. Quizzes check that the child recognises what they just traced; the
+  // level score averages the tracing accuracy with the quiz result.
+  LearningLevel(
+    id: 'tracing-stage2-1',
+    portionLabel: 'A – C',
+    moduleId: 'tracing',
+    stage: 2,
+    levelNumber: 1,
+    title: 'Trace A B C',
+    subtitle: 'Follow the dots to write your first capital letters.',
+    type: LevelType.tracing,
+    passingScore: 50,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Letter A',
+        prompt: 'Trace the letter A along the dots.',
+        displayText: 'A',
+        visualLabel: 'Dotted capital letter A',
+        audioCueKey: 'trace_letter_a',
+      ),
+      ContentItem(
+        title: 'Letter B',
+        prompt: 'Trace the letter B along the dots.',
+        displayText: 'B',
+        visualLabel: 'Dotted capital letter B',
+        audioCueKey: 'trace_letter_b',
+      ),
+      ContentItem(
+        title: 'Letter C',
+        prompt: 'Trace the letter C along the dots.',
+        displayText: 'C',
+        visualLabel: 'Dotted capital letter C',
+        audioCueKey: 'trace_letter_c',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage2-2',
+    portionLabel: '1 – 3',
+    moduleId: 'tracing',
+    stage: 2,
+    levelNumber: 2,
+    title: 'Trace 1 2 3',
+    subtitle: 'Write your first three numbers on the dots.',
+    type: LevelType.tracing,
+    passingScore: 50,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Number 1',
+        prompt: 'Trace the number one, straight down.',
+        displayText: '1',
+        visualLabel: 'Dotted number 1',
+        audioCueKey: 'trace_number_1',
+      ),
+      ContentItem(
+        title: 'Number 2',
+        prompt: 'Trace the number two, around and across.',
+        displayText: '2',
+        visualLabel: 'Dotted number 2',
+        audioCueKey: 'trace_number_2',
+      ),
+      ContentItem(
+        title: 'Number 3',
+        prompt: 'Trace the number three, two little curves.',
+        displayText: '3',
+        visualLabel: 'Dotted number 3',
+        audioCueKey: 'trace_number_3',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage3-1',
+    portionLabel: 'a – c',
+    moduleId: 'tracing',
+    stage: 3,
+    levelNumber: 1,
+    title: 'Trace a b c',
+    subtitle: 'Small letters, one dotted line at a time.',
+    type: LevelType.tracing,
+    passingScore: 60,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Letter a',
+        prompt: 'Trace the small letter a.',
+        displayText: 'a',
+        visualLabel: 'Dotted small letter a',
+        audioCueKey: 'trace_letter_a_small',
+      ),
+      ContentItem(
+        title: 'Letter b',
+        prompt: 'Trace the small letter b.',
+        displayText: 'b',
+        visualLabel: 'Dotted small letter b',
+        audioCueKey: 'trace_letter_b_small',
+      ),
+      ContentItem(
+        title: 'Letter c',
+        prompt: 'Trace the small letter c.',
+        displayText: 'c',
+        visualLabel: 'Dotted small letter c',
+        audioCueKey: 'trace_letter_c_small',
+      ),
+      ContentItem(
+        title: 'Letter d',
+        prompt: 'Trace the small letter d.',
+        displayText: 'd',
+        visualLabel: 'Dotted small letter d',
+        audioCueKey: 'trace_letter_d_small',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-abc-q1',
+        prompt: 'Which small letter did you just trace first?',
+        options: ['a', 'z', 'm'],
+        correctIndex: 0,
+        explanation: 'The first card was the small letter a.',
+      ),
+      QuizQuestion(
+        id: 'tracing-abc-q2',
+        prompt: 'Which letter has a tall line and a round tummy?',
+        options: ['b', 'c', 'a'],
+        correctIndex: 0,
+        explanation: 'The letter b has a tall line and a round tummy.',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage3-2',
+    portionLabel: '4 – 6',
+    moduleId: 'tracing',
+    stage: 3,
+    levelNumber: 2,
+    title: 'Trace 4 5 6',
+    subtitle: 'Bigger numbers, same dotted lines.',
+    type: LevelType.tracing,
+    passingScore: 60,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Number 4',
+        prompt: 'Trace the number four.',
+        displayText: '4',
+        visualLabel: 'Dotted number 4',
+        audioCueKey: 'trace_number_4',
+      ),
+      ContentItem(
+        title: 'Number 5',
+        prompt: 'Trace the number five.',
+        displayText: '5',
+        visualLabel: 'Dotted number 5',
+        audioCueKey: 'trace_number_5',
+      ),
+      ContentItem(
+        title: 'Number 6',
+        prompt: 'Trace the number six.',
+        displayText: '6',
+        visualLabel: 'Dotted number 6',
+        audioCueKey: 'trace_number_6',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-456-q1',
+        prompt: 'Which number comes after 4?',
+        options: ['5', '3', '9'],
+        correctIndex: 0,
+        explanation: 'Counting up from 4 gives 5.',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage3-3',
+    moduleId: 'tracing',
+    stage: 3,
+    levelNumber: 3,
+    title: 'اردو حروف لکھیں',
+    subtitle: 'نقطوں پر انگلی چلا کر اردو حروف بنائیں۔',
+    type: LevelType.tracing,
+    passingScore: 60,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'الف',
+        prompt: 'نقطوں پر الف بنائیں۔',
+        displayText: 'ا',
+        visualLabel: 'نقطوں والا الف',
+        audioCueKey: 'trace_urdu_alif',
+      ),
+      ContentItem(
+        title: 'بے',
+        prompt: 'نقطوں پر بے بنائیں۔',
+        displayText: 'ب',
+        visualLabel: 'نقطوں والی بے',
+        audioCueKey: 'trace_urdu_bay',
+      ),
+      ContentItem(
+        title: 'پے',
+        prompt: 'نقطوں پر پے بنائیں۔',
+        displayText: 'پ',
+        visualLabel: 'نقطوں والی پے',
+        audioCueKey: 'trace_urdu_pay',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-urdu-q1',
+        prompt: 'اردو کا پہلا حرف کون سا ہے؟',
+        options: ['ا', 'ب', 'پ'],
+        correctIndex: 0,
+        explanation: 'اردو کا پہلا حرف الف ہے۔',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage4-1',
+    moduleId: 'tracing',
+    stage: 4,
+    levelNumber: 1,
+    title: 'Trace Name Letters',
+    subtitle: 'Neat capitals that show up in lots of names.',
+    type: LevelType.tracing,
+    passingScore: 70,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Letter M',
+        prompt: 'Trace the letter M without lifting your finger.',
+        displayText: 'M',
+        visualLabel: 'Dotted capital letter M',
+        audioCueKey: 'trace_letter_m',
+      ),
+      ContentItem(
+        title: 'Letter S',
+        prompt: 'Trace the curvy letter S.',
+        displayText: 'S',
+        visualLabel: 'Dotted capital letter S',
+        audioCueKey: 'trace_letter_s',
+      ),
+      ContentItem(
+        title: 'Letter T',
+        prompt: 'Trace the letter T, down then across.',
+        displayText: 'T',
+        visualLabel: 'Dotted capital letter T',
+        audioCueKey: 'trace_letter_t',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-names-q1',
+        prompt: 'Which letter is made of one line down and one across?',
+        options: ['T', 'S', 'M'],
+        correctIndex: 0,
+        explanation: 'T is a line down with a line across the top.',
+      ),
+      QuizQuestion(
+        id: 'tracing-names-q2',
+        prompt: 'Which letter is the curvy one?',
+        options: ['S', 'T', 'M'],
+        correctIndex: 0,
+        explanation: 'S curves one way and then the other.',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage4-2',
+    portionLabel: '7 – 9',
+    moduleId: 'tracing',
+    stage: 4,
+    levelNumber: 2,
+    title: 'Trace 7 8 9',
+    subtitle: 'The last single numbers, traced slowly.',
+    type: LevelType.tracing,
+    passingScore: 70,
+    isBundled: true,
+    contentItems: [
+      ContentItem(
+        title: 'Number 7',
+        prompt: 'Trace the number seven, across then down.',
+        displayText: '7',
+        visualLabel: 'Dotted number 7',
+        audioCueKey: 'trace_number_7',
+      ),
+      ContentItem(
+        title: 'Number 8',
+        prompt: 'Trace the number eight, two circles.',
+        displayText: '8',
+        visualLabel: 'Dotted number 8',
+        audioCueKey: 'trace_number_8',
+      ),
+      ContentItem(
+        title: 'Number 9',
+        prompt: 'Trace the number nine, a circle and a line.',
+        displayText: '9',
+        visualLabel: 'Dotted number 9',
+        audioCueKey: 'trace_number_9',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-789-q1',
+        prompt: 'Which number is made of two circles?',
+        options: ['8', '7', '9'],
+        correctIndex: 0,
+        explanation: 'The number 8 is two circles stacked up.',
+      ),
+    ],
+  ),
+  LearningLevel(
+    id: 'tracing-stage4-3',
+    moduleId: 'tracing',
+    stage: 4,
+    levelNumber: 3,
+    title: 'صاف اردو لکھائی',
+    subtitle: 'حروف کو نقطوں پر صاف اور آہستہ لکھیں۔',
+    type: LevelType.tracing,
+    passingScore: 70,
+    isBundled: false,
+    contentItems: [
+      ContentItem(
+        title: 'سین',
+        prompt: 'نقطوں پر سین بنائیں۔',
+        displayText: 'س',
+        visualLabel: 'نقطوں والی سین',
+        audioCueKey: 'trace_urdu_seen',
+      ),
+      ContentItem(
+        title: 'میم',
+        prompt: 'نقطوں پر میم بنائیں۔',
+        displayText: 'م',
+        visualLabel: 'نقطوں والی میم',
+        audioCueKey: 'trace_urdu_meem',
+      ),
+      ContentItem(
+        title: 'نون',
+        prompt: 'نقطوں پر نون بنائیں۔',
+        displayText: 'ن',
+        visualLabel: 'نقطوں والی نون',
+        audioCueKey: 'trace_urdu_noon',
+      ),
+    ],
+    quizQuestions: [
+      QuizQuestion(
+        id: 'tracing-urdu-q2',
+        prompt: 'کون سا حرف نقطے والا ہے؟',
+        options: ['ن', 'س', 'م'],
+        correctIndex: 0,
+        explanation: 'نون کے اوپر ایک نقطہ ہوتا ہے۔',
+      ),
+    ],
+  ),
 ];
+
+// --- English alphabet ladder ------------------------------------------------
+
+/// One rung of a module's sequence: the glyph a child learns and the word that
+/// anchors it. Every word starts with its own glyph, so the same table can
+/// drive both the cards and the quiz.
+class _AlphabetEntry {
+  const _AlphabetEntry(this.glyph, this.word, this.audioCueKey);
+
+  final String glyph;
+  final String word;
+  final String audioCueKey;
+}
+
+const _englishAlphabet = <_AlphabetEntry>[
+  _AlphabetEntry('A', 'apple', 'english_letter_a'),
+  _AlphabetEntry('B', 'ball', 'english_letter_b'),
+  _AlphabetEntry('C', 'cat', 'english_letter_c'),
+  _AlphabetEntry('D', 'dog', 'english_letter_d'),
+  _AlphabetEntry('E', 'egg', 'english_letter_e'),
+  _AlphabetEntry('F', 'fish', 'english_letter_f'),
+  _AlphabetEntry('G', 'goat', 'english_letter_g'),
+  _AlphabetEntry('H', 'hat', 'english_letter_h'),
+  _AlphabetEntry('I', 'igloo', 'english_letter_i'),
+  _AlphabetEntry('J', 'jug', 'english_letter_j'),
+  _AlphabetEntry('K', 'kite', 'english_letter_k'),
+  _AlphabetEntry('L', 'leaf', 'english_letter_l'),
+  _AlphabetEntry('M', 'moon', 'english_letter_m'),
+  _AlphabetEntry('N', 'nest', 'english_letter_n'),
+  _AlphabetEntry('O', 'orange', 'english_letter_o'),
+  _AlphabetEntry('P', 'pen', 'english_letter_p'),
+  _AlphabetEntry('Q', 'queen', 'english_letter_q'),
+  _AlphabetEntry('R', 'rain', 'english_letter_r'),
+  _AlphabetEntry('S', 'sun', 'english_letter_s'),
+  _AlphabetEntry('T', 'tree', 'english_letter_t'),
+  _AlphabetEntry('U', 'umbrella', 'english_letter_u'),
+  _AlphabetEntry('V', 'van', 'english_letter_v'),
+  _AlphabetEntry('W', 'water', 'english_letter_w'),
+  // Not "box": the quiz asks which letter a word starts with, so every word
+  // here has to actually begin with its own glyph.
+  _AlphabetEntry('X', 'xylophone', 'english_letter_x'),
+  _AlphabetEntry('Y', 'yarn', 'english_letter_y'),
+  _AlphabetEntry('Z', 'zebra', 'english_letter_z'),
+];
+
+/// Where each level starts and stops in [_englishAlphabet]. Four portions cover
+/// the whole alphabet; the last one takes eight letters so nothing is left over.
+const _englishPortionBounds = <List<int>>[
+  [0, 6], // A – F
+  [6, 12], // G – L
+  [12, 18], // M – R
+  [18, 26], // S – Z
+];
+
+List<LearningLevel> _englishAlphabetLevels() {
+  final levels = <LearningLevel>[];
+
+  for (var stage = 1; stage <= 4; stage++) {
+    for (var index = 0; index < _englishPortionBounds.length; index++) {
+      final bounds = _englishPortionBounds[index];
+      final entries = _englishAlphabet.sublist(bounds.first, bounds.last);
+      final portion = '${entries.first.glyph} – ${entries.last.glyph}';
+      final levelNumber = index + 1;
+
+      levels.add(
+        LearningLevel(
+          id: 'english-stage$stage-$levelNumber',
+          moduleId: 'english',
+          stage: stage,
+          levelNumber: levelNumber,
+          title: 'Letters $portion',
+          subtitle: _englishSubtitle(stage),
+          // Older children match letters to words instead of only meeting them.
+          type: stage >= 4 ? LevelType.matching : LevelType.flashcards,
+          passingScore: 55 + stage * 5,
+          isBundled: true,
+          portionLabel: portion,
+          contentItems: [
+            for (final entry in entries)
+              ContentItem(
+                title: entry.glyph,
+                prompt: _englishPrompt(stage, entry),
+                displayText: entry.glyph,
+                visualLabel: 'Letter ${entry.glyph} with a picture of '
+                    '${entry.word}',
+                audioCueKey: entry.audioCueKey,
+              ),
+          ],
+          // Quizzes start at stage 3, matching AgeStageHelper.shouldShowQuiz.
+          quizQuestions: stage >= 3
+              ? _englishQuizQuestions(stage, levelNumber, entries)
+              : const [],
+        ),
+      );
+    }
+  }
+
+  return levels;
+}
+
+String _englishSubtitle(int stage) {
+  return switch (stage) {
+    1 => 'Look and listen to each letter.',
+    2 => 'Hear each letter and copy the sound.',
+    3 => 'Say each letter, then the word it starts.',
+    _ => 'Match every letter to a word that starts with it.',
+  };
+}
+
+String _englishPrompt(int stage, _AlphabetEntry entry) {
+  final glyph = entry.glyph;
+  return switch (stage) {
+    1 => 'This is $glyph. Look at it and listen.',
+    2 => '$glyph is for ${entry.word}. Say $glyph.',
+    3 => '$glyph is for ${entry.word}. Say the letter, then say the word.',
+    _ => '$glyph is for ${entry.word}. Can you think of another word that '
+        'starts with $glyph?',
+  };
+}
+
+/// Two questions per level, drawn from opposite ends of the portion so the
+/// quiz covers more than the letters a child saw most recently.
+List<QuizQuestion> _englishQuizQuestions(
+  int stage,
+  int levelNumber,
+  List<_AlphabetEntry> entries,
+) {
+  final asked = <_AlphabetEntry>[entries.first, entries.last];
+
+  return [
+    for (var i = 0; i < asked.length; i++)
+      _englishQuestion(
+        id: 'english-stage$stage-$levelNumber-q${i + 1}',
+        answer: asked[i],
+        entries: entries,
+        // Move the answer around so it is never always in the same slot.
+        answerSlot: i % 3,
+      ),
+  ];
+}
+
+QuizQuestion _englishQuestion({
+  required String id,
+  required _AlphabetEntry answer,
+  required List<_AlphabetEntry> entries,
+  required int answerSlot,
+}) {
+  final options = entries
+      .where((entry) => entry.glyph != answer.glyph)
+      .take(2)
+      .map((entry) => entry.glyph)
+      .toList()
+    ..insert(answerSlot, answer.glyph);
+
+  return QuizQuestion(
+    id: id,
+    prompt: 'Which letter does ${answer.word} start with?',
+    options: options,
+    correctIndex: answerSlot,
+  );
+}

@@ -97,8 +97,11 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, update: if ownsChildProfile(childId)
         && request.resource.data.parentId == request.auth.uid;
+      // `resource` is null when the document does not exist. Reading
+      // resource.data without that guard errors out and denies the request,
+      // which used to fail every leaderboard refresh.
       allow delete: if ownsChildProfile(childId)
-        && resource.data.parentId == request.auth.uid;
+        && (resource == null || resource.data.parentId == request.auth.uid);
     }
   }
 }

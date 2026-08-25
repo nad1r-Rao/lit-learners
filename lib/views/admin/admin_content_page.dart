@@ -655,6 +655,10 @@ class _LevelForm extends StatelessWidget {
             _TextField(
               controller: contentDisplayController,
               label: 'Display text',
+              helperText: type == LevelType.tracing
+                  ? 'Tracing draws and grades this exactly. Enter the single '
+                      'letter or digit to trace, such as A or ا or 5.'
+                  : null,
             ),
             _TextField(controller: contentVisualController, label: 'Visual'),
             const SizedBox(height: 8),
@@ -715,11 +719,13 @@ class _TextField extends StatelessWidget {
     required this.controller,
     required this.label,
     this.keyboardType,
+    this.helperText,
   });
 
   final TextEditingController controller;
   final String label;
   final TextInputType? keyboardType;
+  final String? helperText;
 
   @override
   Widget build(BuildContext context) {
@@ -730,6 +736,8 @@ class _TextField extends StatelessWidget {
         keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
+          helperText: helperText,
+          helperMaxLines: 3,
           border: const OutlineInputBorder(),
         ),
       ),

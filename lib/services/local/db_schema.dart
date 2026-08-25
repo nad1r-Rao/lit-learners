@@ -2,8 +2,9 @@ class LocalDbSchema {
   const LocalDbSchema._();
 
   static const databaseName = 'little_learners.db';
-  static const version = 4;
+  static const version = 6;
 
+  static const appMeta = 'app_meta';
   static const childProfiles = 'child_profiles';
   static const syncOutbox = 'sync_outbox';
   static const modules = 'modules';
@@ -64,6 +65,7 @@ CREATE TABLE $levels (
   levelType TEXT NOT NULL,
   passingScore INTEGER NOT NULL,
   isBundled INTEGER NOT NULL,
+  portionLabel TEXT,
   isDownloaded INTEGER NOT NULL DEFAULT 0
 )
 ''';
@@ -138,7 +140,17 @@ CREATE TABLE $levelProgress (
     'CREATE INDEX idx_level_progress_isSynced ON $levelProgress(isSynced)',
   ];
 
+  /// Small key/value store for local bookkeeping that is not domain data.
+  /// Currently holds which revision of the bundled content is installed.
+  static const createAppMetaTable = '''
+CREATE TABLE $appMeta (
+  metaKey TEXT PRIMARY KEY,
+  metaValue TEXT NOT NULL
+)
+''';
+
   static const createStatements = [
+    createAppMetaTable,
     createChildProfilesTable,
     createSyncOutboxTable,
     createModulesTable,
@@ -172,5 +184,15 @@ CREATE TABLE $levelProgress (
     createLevelProgressTable,
     'CREATE INDEX idx_level_progress_child ON $levelProgress(childId)',
     'CREATE INDEX idx_level_progress_isSynced ON $levelProgress(isSynced)',
+  ];
+
+  static const version5Statements = [
+    createAppMetaTable,
+  ];
+
+  /// Levels gained the portion they cover (`A – F`). Nullable, so devices
+  /// upgrading keep their rows until the bundle is reinstalled.
+  static const version6Statements = [
+    'ALTER TABLE $levels ADD COLUMN portionLabel TEXT',
   ];
 }

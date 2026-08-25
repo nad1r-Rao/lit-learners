@@ -187,6 +187,7 @@ class FirestoreAdminContentRepository implements AdminContentRepository {
       'levelType': level.level.type.name,
       'passingScore': level.level.passingScore,
       'isBundled': level.level.isBundled,
+      'portionLabel': level.level.portionLabel,
       'isPublished': level.isPublished,
       'publishStatus': level.publishStatus.name,
       'version': level.version,

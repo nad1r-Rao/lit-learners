@@ -13,8 +13,12 @@ abstract class OnboardingRepository {
     required int score,
     required bool passed,
   });
-  Future<List<ManualPageContent>> getManualPages();
-  Future<List<ReadinessQuestion>> getReadinessQuestions();
+  Future<List<ManualPageContent>> getManualPages({
+    OnboardingLanguage language,
+  });
+  Future<List<ReadinessQuestion>> getReadinessQuestions({
+    OnboardingLanguage language,
+  });
 }
 
 class InMemoryOnboardingRepository implements OnboardingRepository {
@@ -32,11 +36,17 @@ class InMemoryOnboardingRepository implements OnboardingRepository {
   }
 
   @override
-  Future<List<ManualPageContent>> getManualPages() async => manualPages;
+  Future<List<ManualPageContent>> getManualPages({
+    OnboardingLanguage language = OnboardingLanguage.english,
+  }) async {
+    return manualPagesFor(language);
+  }
 
   @override
-  Future<List<ReadinessQuestion>> getReadinessQuestions() async {
-    return readinessQuestions;
+  Future<List<ReadinessQuestion>> getReadinessQuestions({
+    OnboardingLanguage language = OnboardingLanguage.english,
+  }) async {
+    return readinessQuestionsFor(language);
   }
 
   @override

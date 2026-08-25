@@ -339,7 +339,16 @@ class _ProgressRow extends StatelessWidget {
                 ),
                 Text(report.moduleTitle),
                 if (progress.score != null)
-                  Text('Quiz score ${progress.score}%'),
+                  Text(
+                    switch (report.levelType) {
+                      // Canvas work carries the mark a grown-up gave it, not
+                      // anything the app worked out on its own.
+                      LevelType.tracing ||
+                      LevelType.drawing =>
+                        'Your mark ${progress.score}%',
+                      _ => 'Quiz score ${progress.score}%',
+                    },
+                  ),
                 if (watchedText != null) Text(watchedText),
                 Text(
                   _formatDate(progress.updatedAt),
@@ -361,6 +370,7 @@ class _ProgressRow extends StatelessWidget {
       LevelType.matching => Icons.category,
       LevelType.story => Icons.menu_book,
       LevelType.drawing => Icons.brush,
+      LevelType.tracing => Icons.gesture,
       LevelType.flashcards => Icons.style,
     };
   }

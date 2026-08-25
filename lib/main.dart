@@ -15,5 +15,8 @@ Future<void> main() async {
       persistenceEnabled: true,
     );
   }
+  // Channels and the timezone database have to exist before any reminder can
+  // be scheduled, and scheduling happens as soon as a parent opens the list.
+  await localNotificationService.initialize();
   runApp(const LittleLearnersApp());
 }

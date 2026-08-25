@@ -14,8 +14,15 @@ class LearningTextDirection {
         : TextDirection.ltr;
   }
 
+  /// Urdu content is not confined to the Urdu module — the tracing module
+  /// teaches Urdu letters too — so the level's own text decides the direction
+  /// when the module id does not.
   static TextDirection forLevel(LearningLevel level) {
-    return level.moduleId == 'urdu' ? TextDirection.rtl : TextDirection.ltr;
+    if (level.moduleId == 'urdu') return TextDirection.rtl;
+    if (_hasArabicScript(level.title) || _hasArabicScript(level.subtitle)) {
+      return TextDirection.rtl;
+    }
+    return TextDirection.ltr;
   }
 
   static TextDirection forText(String text) {

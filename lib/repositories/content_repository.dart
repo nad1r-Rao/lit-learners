@@ -19,15 +19,24 @@ class CachedContentRepository implements ContentRepository {
   CachedContentRepository({
     required ContentDao contentDao,
     ContentSyncService? contentSyncService,
-    this.bundledModules = seedModules,
-    this.bundledLevels = seedLevels,
-  })  : _contentDao = contentDao,
+    List<LearningModule>? bundledModules,
+    List<LearningLevel>? bundledLevels,
+    this.contentRevision = bundledContentRevision,
+  })  : bundledModules = bundledModules ?? seedModules,
+        // Not a default value: the English levels are built from a table, so
+        // `seedLevels` cannot be const any more.
+        bundledLevels = bundledLevels ?? seedLevels,
+        _contentDao = contentDao,
         _contentSyncService = contentSyncService;
 
   final ContentDao _contentDao;
   final ContentSyncService? _contentSyncService;
   final List<LearningModule> bundledModules;
   final List<LearningLevel> bundledLevels;
+
+  /// Identifies the bundle in [bundledLevels]. When it differs from what the
+  /// database was seeded with, the bundle is reinstalled.
+  final String contentRevision;
   bool _didCheckSeed = false;
   bool _didCheckRemoteContent = false;
 
@@ -76,6 +85,17 @@ class CachedContentRepository implements ContentRepository {
         modules: bundledModules,
         levels: bundledLevels,
       );
+      await _contentDao.setContentRevision(contentRevision);
+    } else if (await _contentDao.getContentRevision() != contentRevision) {
+      // The app shipped new or edited bundled content since this device was
+      // seeded. Without this, levels added to the bundle would never appear on
+      // an existing install. `replaceContent` keeps downloaded flags, and level
+      // progress lives in its own table, so nothing the child earned is lost.
+      await _contentDao.replaceContent(
+        modules: bundledModules,
+        levels: bundledLevels,
+      );
+      await _contentDao.setContentRevision(contentRevision);
     }
     _didCheckSeed = true;
     await _syncRemoteContentIfAvailable();

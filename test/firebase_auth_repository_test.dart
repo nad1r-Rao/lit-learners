@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:little_learners/models/onboarding.dart';
 import 'package:little_learners/models/parent_account.dart';
+import 'package:little_learners/repositories/auth_repository.dart';
 import 'package:little_learners/repositories/firebase_auth_repository.dart';
 import 'package:little_learners/services/firebase/firebase_auth_service.dart';
 import 'package:little_learners/services/firebase/parent_firestore_service.dart';
@@ -62,6 +64,36 @@ void main() {
       expect(parentRemoteDataSource.ensuredParentIds, [account.id]);
     });
 
+    test('signs in with Google through the parent document', () async {
+      final account = _parentAccount('parent-google');
+      final authService =
+          _FakeParentAuthRemoteDataSource(googleParent: account);
+      final parentRemoteDataSource = _FakeParentRemoteDataSource();
+      final repository = FirebaseAuthRepository(
+        authService: authService,
+        parentRemoteDataSource: parentRemoteDataSource,
+      );
+
+      final signedIn = await repository.signInWithGoogle();
+
+      expect(signedIn.id, account.id);
+      expect(parentRemoteDataSource.ensuredParentIds, [account.id]);
+    });
+
+    test('reports a cancelled Google chooser as its own exception', () async {
+      // Null from the data source means the parent dismissed the sheet; the
+      // UI has to tell that apart from a real failure.
+      final repository = FirebaseAuthRepository(
+        authService: _FakeParentAuthRemoteDataSource(),
+        parentRemoteDataSource: _FakeParentRemoteDataSource(),
+      );
+
+      expect(
+        repository.signInWithGoogle(),
+        throwsA(isA<GoogleSignInCancelled>()),
+      );
+    });
+
     test('delegates password reset and sign out', () async {
       final authService = _FakeParentAuthRemoteDataSource();
       final repository = FirebaseAuthRepository(
@@ -74,6 +106,18 @@ void main() {
 
       expect(authService.passwordResetEmail, 'parent@example.com');
       expect(authService.didSignOut, isTrue);
+    });
+
+    test('maps Firebase auth setup errors to an actionable message', () {
+      final message = firebaseAuthMessageFor(
+        FirebaseAuthException(
+          code: 'internal-error',
+          message:
+              'An internal error has occurred. [ CONFIGURATION_NOT_FOUND ]',
+        ),
+      );
+
+      expect(message, contains('Authentication > Sign-in method'));
     });
   });
 }
@@ -91,12 +135,15 @@ class _FakeParentAuthRemoteDataSource implements ParentAuthRemoteDataSource {
     this.current,
     ParentAccount? signInParent,
     ParentAccount? signUpParent,
+    ParentAccount? googleParent,
   })  : _signInParent = signInParent,
-        _signUpParent = signUpParent;
+        _signUpParent = signUpParent,
+        _googleParent = googleParent;
 
   ParentAccount? current;
   final ParentAccount? _signInParent;
   final ParentAccount? _signUpParent;
+  final ParentAccount? _googleParent;
   String? passwordResetEmail;
   bool didSignOut = false;
 
@@ -118,6 +165,9 @@ class _FakeParentAuthRemoteDataSource implements ParentAuthRemoteDataSource {
   }) async {
     return _signUpParent ?? _parentAccount('signed-up-parent');
   }
+
+  @override
+  Future<ParentAccount?> signInWithGoogle() async => _googleParent;
 
   @override
   Future<void> sendPasswordReset(String email) async {
@@ -170,3 +220,4 @@ class _FakeParentRemoteDataSource implements ParentRemoteDataSource {
     throw UnimplementedError();
   }
 }
+

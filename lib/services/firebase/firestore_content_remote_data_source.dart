@@ -86,6 +86,7 @@ class FirestoreContentRemoteDataSource implements ContentRemoteDataSource {
       ),
       passingScore: (data['passingScore'] as num?)?.toInt() ?? 70,
       isBundled: (data['isBundled'] as bool?) ?? false,
+      portionLabel: data['portionLabel'] as String?,
       contentItems: _contentItemsFromRemoteValue(data['contentItems']),
       quizQuestions: _quizQuestionsFromRemoteValue(data['quizQuestions']),
       videoLessons: _videoLessonsFromRemoteValue(data['videoLessons']),

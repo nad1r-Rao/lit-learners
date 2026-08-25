@@ -140,7 +140,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         AgeStageHelper.shouldShowQuiz(child.age)) {
       Navigator.of(context).pushReplacementNamed(
         RouteNames.quiz,
-        arguments: level.id,
+        arguments: QuizArgs(levelId: level.id),
       );
       return;
     }

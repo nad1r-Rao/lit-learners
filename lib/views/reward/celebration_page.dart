@@ -49,7 +49,7 @@ class CelebrationPage extends StatelessWidget {
                     StarRating(count: args.starsEarned),
                     if (args.score != null) ...[
                       const SizedBox(height: 8),
-                      Text('Quiz score: ${args.score}%'),
+                      Text('Score: ${args.score}%'),
                     ],
                   ],
                 ),
@@ -72,9 +72,11 @@ class CelebrationPage extends StatelessWidget {
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () {
+                // Keeps the child selection screen underneath, so the way
+                // back out of the modules is still one gesture away.
                 Navigator.of(context).pushNamedAndRemoveUntil(
                   RouteNames.childHome,
-                  (route) => false,
+                  (route) => route.settings.name == RouteNames.childSelection,
                 );
               },
               icon: const Icon(Icons.home),

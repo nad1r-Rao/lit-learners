@@ -12,19 +12,21 @@ import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/leaderboard_viewmodel.dart';
 import '../../viewmodels/learning_viewmodel.dart';
+import '../../viewmodels/notification_viewmodel.dart';
 import '../../viewmodels/parent_report_viewmodel.dart';
 import '../../viewmodels/profile_viewmodel.dart';
+import '../../widgets/child_avatar.dart';
 import '../leaderboard/leaderboard_page.dart';
 import '../reminders/parent_reminders_page.dart';
 
-class ProfileSelectionPage extends StatefulWidget {
-  const ProfileSelectionPage({super.key});
+class ParentDashboardPage extends StatefulWidget {
+  const ParentDashboardPage({super.key});
 
   @override
-  State<ProfileSelectionPage> createState() => _ProfileSelectionPageState();
+  State<ParentDashboardPage> createState() => _ParentDashboardPageState();
 }
 
-class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
+class _ParentDashboardPageState extends State<ParentDashboardPage> {
   int _selectedTab = 0;
   String? _loadedParentId;
 
@@ -51,20 +53,39 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 64,
-        backgroundColor: AppColors.ink,
+        toolbarHeight: 72,
+        backgroundColor: AppColors.grape,
         foregroundColor: Colors.white,
+        // A childless `DecoratedBox` collapses to zero height here — the
+        // Scaffold hands the app bar loose height constraints — which left the
+        // gradient invisible and white-on-white icons in a bare header.
+        // `Container` expands into those constraints instead.
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.grape, AppColors.violet],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Parent Dashboard',
-              style: TextStyle(fontWeight: FontWeight.w900),
+            Text(
+              'Welcome back, ${_parentLabel(parent.email)} 👋',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 2),
-            Text(
-              'Welcome back, ${_parentLabel(parent.email)}',
-              style: const TextStyle(
+            const Text(
+              'Parent Dashboard',
+              style: TextStyle(
                 color: Colors.white70,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -73,13 +94,36 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
           ],
         ),
         actions: [
-          // The admin portal is reached through its own login (UC-18), not
-          // from an authenticated parent session.
-          IconButton(
+          _NotificationBell(
+            unread: context.watch<NotificationViewModel>().unreadCount,
+            onPressed: () => Navigator.of(context).pushNamed(
+              RouteNames.parentNotifications,
+            ),
+          ),
+          const SizedBox(width: 4),
+          if (parent.canManageAdminContent)
+            IconButton.filled(
+              tooltip: 'Admin dashboard',
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.honey,
+                foregroundColor: AppColors.ink,
+              ),
+              onPressed: () => _openAdminLogin(context),
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+            ),
+          const SizedBox(width: 8),
+          // Filled rather than a bare icon: a plain white glyph disappears the
+          // moment the header behind it is light.
+          IconButton.filled(
             tooltip: 'Log out',
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.coral,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => _showLogoutSheet(context),
             icon: const Icon(Icons.logout),
           ),
+          const SizedBox(width: 12),
         ],
       ),
       body: IndexedStack(
@@ -141,6 +185,9 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
       context.read<ProfileViewModel>().loadProfiles(parentId),
       context.read<ParentReportViewModel>().loadReport(parentId),
       context.read<LeaderboardViewModel>().loadLeaderboard(parentId: parentId),
+      // Also catches up on reminders that fired while the app was closed, so
+      // the bell badge is right the moment the dashboard appears.
+      context.read<NotificationViewModel>().load(parentId),
     ]);
   }
 
@@ -171,6 +218,13 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
         successRoute: RouteNames.parentReports,
       ),
     );
+  }
+
+  /// UC-18 keeps the admin session separate from the parent session, so this
+  /// shortcut opens the admin login rather than dropping an authenticated
+  /// parent straight into the dashboard. Admin credentials are the gate.
+  void _openAdminLogin(BuildContext context) {
+    Navigator.of(context).pushNamed(RouteNames.adminLogin);
   }
 
   Future<void> _startLearning(
@@ -300,6 +354,61 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell({required this.unread, required this.onPressed});
+
+  final int unread;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: unread == 0 ? 'Notifications' : 'Notifications, $unread unread',
+      child: ExcludeSemantics(
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton.filled(
+              tooltip: 'Notifications',
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.16),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: onPressed,
+              icon: const Icon(Icons.notifications_none_rounded),
+            ),
+            if (unread > 0)
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  constraints: const BoxConstraints(minWidth: 18),
+                  height: 18,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.coral,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Text(
+                    unread > 9 ? '9+' : '$unread',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -523,19 +632,32 @@ class _ActiveChildCard extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.ink,
-        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [AppColors.grape, AppColors.violet],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grape.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                _AvatarBubble(
+                ChildAvatar(
                   name: profile.name,
-                  color: AppColors.honey,
+                  avatarValue: profile.avatarAsset,
+                  backgroundColor: AppColors.honey,
+                  borderColor: Colors.white.withValues(alpha: 0.7),
                   radius: 24,
                 ),
                 const SizedBox(width: 12),
@@ -605,8 +727,8 @@ class _ActiveChildCard extends StatelessWidget {
             const SizedBox(height: 12),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.ink,
+                backgroundColor: AppColors.honey,
+                foregroundColor: AppColors.coral,
               ),
               onPressed: onStart,
               icon: const Icon(Icons.play_arrow_rounded),
@@ -646,7 +768,8 @@ class _ChildSwitchChips extends StatelessWidget {
                       : AppColors.ink,
                   fontWeight: FontWeight.w800,
                 ),
-                selectedColor: AppColors.ink,
+                selectedColor: AppColors.violet,
+                backgroundColor: AppColors.lavender,
                 onSelected: (_) {
                   context.read<ActiveChildSession>().selectProfile(profile);
                 },
@@ -708,8 +831,8 @@ class _StageProgressTile extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.panel,
-        border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.46)),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
@@ -740,7 +863,7 @@ class _StageProgressTile extends StatelessWidget {
                     minHeight: 5,
                     value: summary.progress,
                     color: color,
-                    backgroundColor: AppColors.line,
+                    backgroundColor: AppColors.lavender,
                   ),
                 ),
               ],
@@ -823,7 +946,7 @@ class _RewardTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         border: Border.all(color: color.withValues(alpha: 0.2)),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         children: [
@@ -876,21 +999,29 @@ class _ProfileManagementCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.panel,
-        border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.48)),
+        borderRadius: BorderRadius.circular(20),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           Container(
-            color: accentColor,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [accentColor, AppColors.violet],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                _AvatarBubble(
+                ChildAvatar(
                   name: profile.name,
-                  color: Colors.white.withValues(alpha: 0.9),
+                  avatarValue: profile.avatarAsset,
+                  backgroundColor: Colors.white.withValues(alpha: 0.9),
                   textColor: AppColors.ink,
+                  borderColor: Colors.white.withValues(alpha: 0.62),
                   radius: 23,
                 ),
                 const SizedBox(width: 12),
@@ -1039,35 +1170,6 @@ class _CompactIconButton extends StatelessWidget {
   }
 }
 
-class _AvatarBubble extends StatelessWidget {
-  const _AvatarBubble({
-    required this.name,
-    required this.color,
-    this.textColor = AppColors.ink,
-    this.radius = 20,
-  });
-
-  final String name;
-  final Color color;
-  final Color textColor;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: color,
-      child: Text(
-        _initials(name),
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.label);
 
@@ -1116,9 +1218,9 @@ class _EmptyChildProfilesCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.panel,
-        border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.lavender,
+        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.58)),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: [
@@ -1126,10 +1228,10 @@ class _EmptyChildProfilesCard extends StatelessWidget {
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: AppColors.mint,
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.honey.withValues(alpha: 0.74),
+              borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(Icons.child_care, color: AppColors.ink),
+            child: const Icon(Icons.child_care, color: AppColors.violet),
           ),
           const SizedBox(height: 14),
           Text(
@@ -1147,6 +1249,10 @@ class _EmptyChildProfilesCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.honey,
+              foregroundColor: AppColors.coral,
+            ),
             onPressed: onCreateProfile,
             icon: const Icon(Icons.add),
             label: const Text('Add a child profile'),
@@ -1166,8 +1272,8 @@ class _SoftLoadingCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.panel,
-        border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.48)),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: const Row(
         children: [
@@ -1201,8 +1307,8 @@ class _SoftInfoCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.panel,
-        border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.lilac.withValues(alpha: 0.48)),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
@@ -1299,6 +1405,7 @@ IconData _moduleIcon(LevelProgressReport report) {
     LevelType.counting => Icons.onetwothree_outlined,
     LevelType.story => Icons.menu_book_outlined,
     LevelType.drawing => Icons.draw_outlined,
+    LevelType.tracing => Icons.gesture_outlined,
     LevelType.matching => Icons.extension_outlined,
     LevelType.flashcards => Icons.style_outlined,
   };
@@ -1324,13 +1431,6 @@ ChildReport? _childReportFor(ParentReport? report, String profileId) {
   return null;
 }
 
-String _initials(String value) {
-  final parts = value.trim().split(RegExp(r'\s+'));
-  if (parts.isEmpty || parts.first.isEmpty) return 'LL';
-  if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-}
-
 String _parentLabel(String email) {
   final name = email.split('@').first.trim();
   if (name.isEmpty) return 'Parent';
@@ -1339,18 +1439,18 @@ String _parentLabel(String email) {
 
 Color _profileAccent(int index) {
   const colors = [
-    AppColors.ink,
-    AppColors.leaf,
-    Color(0xFF9B5B09),
+    AppColors.grape,
+    AppColors.coral,
+    AppColors.sky,
   ];
   return colors[index % colors.length];
 }
 
 Color _progressColor(int index) {
   const colors = [
-    AppColors.leaf,
+    AppColors.plum,
     AppColors.sky,
-    AppColors.honey,
+    AppColors.coral,
   ];
   return colors[index % colors.length];
 }

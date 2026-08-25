@@ -61,7 +61,7 @@ class _SplashPageState extends State<SplashPage> {
               builder: (context, constraints) {
                 final compact = constraints.maxHeight < 650;
                 final topSpace =
-                    constraints.maxHeight * (compact ? 0.29 : 0.32);
+                    constraints.maxHeight * (compact ? 0.27 : 0.29);
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -75,10 +75,13 @@ class _SplashPageState extends State<SplashPage> {
                         textAlign: TextAlign.center,
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: AppColors.forest,
+                                  color: AppColors.coral,
                                   fontSize: compact ? 14 : 16,
+                                  fontWeight: FontWeight.w800,
                                 ),
                       ),
+                      SizedBox(height: compact ? 12 : 18),
+                      _SplashKoala(compact: compact),
                       const Spacer(),
                       FractionallySizedBox(
                         widthFactor: compact ? 0.86 : 0.76,
@@ -87,11 +90,11 @@ class _SplashPageState extends State<SplashPage> {
                           child: FilledButton.icon(
                             key: const ValueKey('splash-continue-button'),
                             style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.lime,
-                              foregroundColor: AppColors.ink,
+                              backgroundColor: AppColors.honey,
+                              foregroundColor: AppColors.coral,
                               elevation: 5,
                               shadowColor:
-                                  AppColors.forest.withValues(alpha: 0.28),
+                                  AppColors.grape.withValues(alpha: 0.28),
                             ),
                             onPressed: _isCheckingSession ? null : _continue,
                             icon: _isCheckingSession
@@ -99,7 +102,7 @@ class _SplashPageState extends State<SplashPage> {
                                     dimension: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.4,
-                                      color: AppColors.ink,
+                                      color: AppColors.coral,
                                     ),
                                   )
                                 : const Icon(Icons.arrow_forward_rounded),
@@ -124,6 +127,21 @@ class _SplashPageState extends State<SplashPage> {
   }
 }
 
+class _SplashKoala extends StatelessWidget {
+  const _SplashKoala({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/images/koala/koala_guide_portrait.png',
+      height: compact ? 76 : 104,
+      fit: BoxFit.contain,
+    );
+  }
+}
+
 class _BrandBadge extends StatelessWidget {
   const _BrandBadge();
 
@@ -141,7 +159,7 @@ class _BrandBadge extends StatelessWidget {
           border: Border.all(color: Colors.white.withValues(alpha: 0.78)),
           boxShadow: [
             BoxShadow(
-              color: AppColors.forest.withValues(alpha: 0.18),
+              color: AppColors.grape.withValues(alpha: 0.18),
               blurRadius: 16,
               offset: const Offset(0, 7),
             ),

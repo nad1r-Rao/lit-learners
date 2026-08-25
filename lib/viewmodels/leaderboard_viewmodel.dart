@@ -33,11 +33,17 @@ class LeaderboardViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      if (parentId != null) {
+    if (parentId != null) {
+      // Publishing this parent's own scores is best effort. If it fails the
+      // board is merely a little stale, which is no reason to show nothing.
+      try {
         await _leaderboardSyncService?.refreshParent(parentId);
+      } catch (_) {
+        // Ignored on purpose; the read below is what this screen needs.
       }
+    }
 
+    try {
       final entries = <LeaderboardEntry>[];
       if (_selectedStage == 0) {
         for (var age = 1; age <= 4; age++) {

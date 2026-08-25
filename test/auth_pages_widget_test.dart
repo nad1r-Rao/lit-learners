@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:little_learners/core/theme/app_theme.dart';
 import 'package:little_learners/repositories/auth_repository.dart';
 import 'package:little_learners/viewmodels/auth_viewmodel.dart';
+import 'package:little_learners/views/auth/forgot_password_page.dart';
 import 'package:little_learners/views/auth/login_page.dart';
 import 'package:little_learners/views/auth/signup_page.dart';
 import 'package:provider/provider.dart';
@@ -43,17 +44,72 @@ void main() {
     );
     expect(errorCapture.errors, isEmpty);
   });
+
+  testWidgets('LoginPage offers Google alongside the password form',
+      (tester) async {
+    await _pumpAuthPage(tester, const LoginPage());
+
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Forgot password?'), findsOneWidget);
+  });
+
+  testWidgets('ForgotPasswordPage asks Firebase to mail a reset link',
+      (tester) async {
+    final repository = InMemoryAuthRepository();
+    await repository.signUp(email: 'parent@example.com', password: 'Old1!aaa');
+    await _pumpAuthPage(
+      tester,
+      const ForgotPasswordPage(),
+      repository: repository,
+    );
+
+    expect(find.text('RESET'), findsOneWidget);
+    expect(find.text('Send reset link'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'parent@example.com');
+    await _tap(tester, 'Send reset link');
+
+    expect(repository.passwordResetEmails, ['parent@example.com']);
+    // The screen confirms in place rather than moving on: the rest of the
+    // flow happens in the parent's mail client.
+    expect(find.textContaining('Reset link sent'), findsOneWidget);
+    expect(find.text('Send it again'), findsOneWidget);
+  });
+
+  testWidgets('ForgotPasswordPage reports an unknown email', (tester) async {
+    await _pumpAuthPage(tester, const ForgotPasswordPage());
+
+    await tester.enterText(find.byType(TextField), 'nobody@example.com');
+    await _tap(tester, 'Send reset link');
+
+    expect(find.text('No account found for this email.'), findsOneWidget);
+    expect(find.text('Send reset link'), findsOneWidget);
+  });
 }
 
-Future<void> _pumpAuthPage(WidgetTester tester, Widget page) async {
-  tester.view.physicalSize = const Size(320, 568);
+/// Taps the button carrying [label] and lets the resulting rebuild finish.
+Future<void> _tap(WidgetTester tester, String label) async {
+  final button = find.text(label);
+  await tester.ensureVisible(button);
+  await tester.pump();
+  await tester.tap(button);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpAuthPage(
+  WidgetTester tester,
+  Widget page, {
+  InMemoryAuthRepository? repository,
+  Size size = const Size(320, 568),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
   await tester.pumpWidget(
     ChangeNotifierProvider(
-      create: (_) => AuthViewModel(InMemoryAuthRepository()),
+      create: (_) => AuthViewModel(repository ?? InMemoryAuthRepository()),
       child: MaterialApp(
         theme: AppTheme.light(),
         home: page,

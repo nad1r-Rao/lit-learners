@@ -6,6 +6,20 @@ import '../models/quiz_question.dart';
 class QuizViewModel extends ChangeNotifier {
   QuizViewModel(this.level);
 
+  /// Canvas levels are graded twice: once by the grown-up who marked the
+  /// drawing or tracing, once by the quiz that follows. The level mark is the
+  /// average, so neither half can be skipped and the parent's mark is not
+  /// thrown away by a good round of questions.
+  ///
+  /// Levels with no canvas stage keep their quiz percentage unchanged.
+  static int combineWithParentMark({
+    required int quizPercent,
+    int? parentMark,
+  }) {
+    if (parentMark == null) return quizPercent;
+    return ((parentMark + quizPercent) / 2).round();
+  }
+
   final LearningLevel level;
   int _questionIndex = 0;
   int _correctCount = 0;

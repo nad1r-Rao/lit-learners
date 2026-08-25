@@ -18,7 +18,7 @@ void main() {
       final invalidAge = await viewModel.createProfile(
         parentId: 'parent-1',
         name: 'Aya',
-        age: 5,
+        age: 9,
         avatarAsset: 'koala-blue',
         leaderboardOptIn: false,
         displayPreference: 'alias',
@@ -29,6 +29,41 @@ void main() {
       expect(viewModel.profiles, isEmpty);
     });
 
+    test('accepts only the ages the content is authored for', () async {
+      final viewModel = ProfileViewModel(InMemoryChildProfileRepository());
+
+      for (final age in [0, 5, 8]) {
+        expect(
+          await viewModel.createProfile(
+            parentId: 'parent-1',
+            name: 'Aya',
+            age: age,
+            avatarAsset: 'koala-blue',
+            leaderboardOptIn: false,
+            displayPreference: 'alias',
+          ),
+          isFalse,
+          reason: 'age $age is outside 1-4',
+        );
+      }
+      expect(viewModel.errorMessage, 'Age must be between 1 and 4.');
+
+      for (final age in [1, 2, 3, 4]) {
+        expect(
+          await viewModel.createProfile(
+            parentId: 'parent-$age',
+            name: 'Aya',
+            age: age,
+            avatarAsset: 'koala-blue',
+            leaderboardOptIn: false,
+            displayPreference: 'alias',
+          ),
+          isTrue,
+          reason: 'age $age is inside 1-4',
+        );
+      }
+    });
+
     test('loads created profiles and exposes max-profile state', () async {
       final viewModel = ProfileViewModel(InMemoryChildProfileRepository());
 
@@ -36,7 +71,7 @@ void main() {
         final created = await viewModel.createProfile(
           parentId: 'parent-1',
           name: 'Child $index',
-          age: 2,
+          age: 4,
           avatarAsset: 'koala-blue',
           leaderboardOptIn: false,
           displayPreference: 'alias',

@@ -5,6 +5,7 @@ import '../../core/routing/app_router.dart';
 import '../../core/routing/route_names.dart';
 import '../../core/utils/age_stage_helper.dart';
 import '../../models/koala_guide_message.dart';
+import '../../models/learning_level.dart';
 import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../widgets/koala_guide.dart';
@@ -59,84 +60,115 @@ class _VideoLearningPageState extends State<VideoLearningPage> {
             for (final level in levels)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Stack(
-                  children: [
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  child: Text(level.levelNumber.toString()),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        level.title,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                      ),
-                                      Text(level.subtitle),
-                                    ],
-                                  ),
-                                ),
-                                StarRating(count: learning.starsFor(level.id)),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            for (final lesson in level.videoLessons)
-                              ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: const Icon(Icons.play_circle_fill),
-                                title: Text(lesson.title),
-                                subtitle: Text(
-                                  '${lesson.durationLabel} - '
-                                  '${lesson.description}',
-                                ),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  if (!learning.canOpenLevel(level)) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          learning.lockReasonFor(level),
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                  Navigator.of(context).pushNamed(
-                                    RouteNames.videoPlayer,
-                                    arguments: VideoPlayerArgs(
-                                      levelId: level.id,
-                                      lesson: lesson,
-                                    ),
-                                  );
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (!learning.canOpenLevel(level))
-                      LockedOverlay(reason: learning.lockReasonFor(level)),
-                  ],
-                ),
+                child: _VideoLevelCard(level: level),
               ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _VideoLevelCard extends StatelessWidget {
+  const _VideoLevelCard({required this.level});
+
+  final LearningLevel level;
+
+  @override
+  Widget build(BuildContext context) {
+    final learning = context.watch<LearningViewModel>();
+    final canOpen = learning.canOpenLevel(level);
+    final canDownload = learning.canDownloadLevel(level);
+    final reason = learning.lockReasonFor(level);
+
+    return Stack(
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      child: Text(level.levelNumber.toString()),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            level.title,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          Text(level.subtitle),
+                        ],
+                      ),
+                    ),
+                    StarRating(count: learning.starsFor(level.id)),
+                  ],
+                ),
+                // Video levels can ship undownloaded just like the other
+                // modules, so they need the same way to fetch them.
+                if (canDownload) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _download(context, learning),
+                    icon: const Icon(Icons.download),
+                    label: const Text('Download'),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                for (final lesson in level.videoLessons)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.play_circle_fill),
+                    title: Text(lesson.title),
+                    subtitle: Text(
+                      '${lesson.durationLabel} - ${lesson.description}',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      if (!canOpen) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(reason)),
+                        );
+                        return;
+                      }
+                      Navigator.of(context).pushNamed(
+                        RouteNames.videoPlayer,
+                        arguments: VideoPlayerArgs(
+                          levelId: level.id,
+                          lesson: lesson,
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+        // A downloadable level is not really locked: covering it would hide
+        // the download button the parent needs to tap.
+        if (!canOpen && !canDownload) LockedOverlay(reason: reason),
+      ],
+    );
+  }
+
+  Future<void> _download(
+    BuildContext context,
+    LearningViewModel learning,
+  ) async {
+    await learning.downloadLevel(level);
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${level.title} downloaded.')),
     );
   }
 }

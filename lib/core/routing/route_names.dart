@@ -6,6 +6,7 @@ class RouteNames {
   static const signup = '/signup';
   static const forgotPassword = '/forgot-password';
   static const onboardingManual = '/onboarding/manual';
+  static const onboardingLanguage = '/onboarding/language';
   static const onboardingTest = '/onboarding/test';
   static const adminLogin = '/admin/login';
   static const adminDashboard = '/admin';
@@ -13,12 +14,15 @@ class RouteNames {
   static const adminParentAccounts = '/admin/parent-accounts';
   static const adminProgressStatistics = '/admin/progress-statistics';
   static const adminMedia = '/admin/media';
-  static const profiles = '/profiles';
   static const profileEdit = '/profiles/edit';
+  static const parentDashboard = '/parent/dashboard';
   static const parentReports = '/parent/reports';
   static const parentReminders = '/parent/reminders';
+  static const parentNotifications = '/parent/notifications';
   static const leaderboard = '/parent/leaderboard';
   static const parentalLock = '/parental-lock';
+  static const parentMarking = '/parent/marking';
+  static const childSelection = '/child/select';
   static const childHome = '/child/home';
   static const moduleLevels = '/child/module/levels';
   static const levelPlayer = '/child/level/player';

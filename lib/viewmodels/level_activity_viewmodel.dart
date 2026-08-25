@@ -6,21 +6,19 @@ import '../models/learning_level.dart';
 class LevelActivityViewModel extends ChangeNotifier {
   LevelActivityViewModel(this.level);
 
-  static const defaultDrawingColors = [
-    'Red',
-    'Blue',
-    'Yellow',
-    'Green',
-  ];
-
   final LearningLevel level;
   int _itemIndex = 0;
   int _tapCount = 0;
   String? _selectedMatch;
-  String _selectedDrawingColor = defaultDrawingColors.first;
   bool _currentItemComplete = false;
+  int _attempt = 0;
 
   int get itemIndex => _itemIndex;
+
+  /// Bumped by [restart]. Canvas activities watch it so they know to wipe the
+  /// page when a parent sends the level back for more practice, which the item
+  /// index alone cannot tell them on a single-card level.
+  int get attempt => _attempt;
   ContentItem get currentItem => level.contentItems[_itemIndex];
   bool get currentItemComplete => _currentItemComplete;
   int get tapCount => _tapCount;
@@ -32,8 +30,6 @@ class LevelActivityViewModel extends ChangeNotifier {
   }
 
   String? get selectedMatch => _selectedMatch;
-  String get selectedDrawingColor => _selectedDrawingColor;
-  List<String> get drawingColorOptions => defaultDrawingColors;
 
   List<String> get matchOptions {
     final labels =
@@ -67,29 +63,31 @@ class LevelActivityViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectDrawingColor(String value) {
-    if (!defaultDrawingColors.contains(value)) return;
-
-    _selectedDrawingColor = value;
-    notifyListeners();
-  }
-
   void nextItem() {
     if (!_currentItemComplete || isLastItem) return;
 
     _itemIndex += 1;
-    _tapCount = 0;
-    _selectedMatch = null;
-    _selectedDrawingColor = defaultDrawingColors.first;
-    _currentItemComplete = false;
+    _resetItemState();
     notifyListeners();
   }
 
   void resetCurrentItem() {
+    _resetItemState();
+    notifyListeners();
+  }
+
+  /// Sends the level back to its first card so it can be worked through again,
+  /// used when a parent marks canvas work as needing more practice.
+  void restart() {
+    _attempt += 1;
+    _itemIndex = 0;
+    _resetItemState();
+    notifyListeners();
+  }
+
+  void _resetItemState() {
     _tapCount = 0;
     _selectedMatch = null;
-    _selectedDrawingColor = defaultDrawingColors.first;
     _currentItemComplete = false;
-    notifyListeners();
   }
 }

@@ -278,23 +278,35 @@ class AuthActionButton extends StatelessWidget {
 }
 
 class AuthMessageBanner extends StatelessWidget {
-  const AuthMessageBanner({required this.message, super.key});
+  const AuthMessageBanner({
+    required this.message,
+    this.isError = true,
+    super.key,
+  });
 
   final String message;
+  final bool isError;
 
   @override
   Widget build(BuildContext context) {
+    final accent = isError ? AppColors.coral : AppColors.leaf;
+
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xE6FFF3B0),
+        color: isError ? const Color(0xE6FFF3B0) : const Color(0xE6DDF7E8),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.coral.withValues(alpha: 0.5)),
+        border: Border.all(color: accent.withValues(alpha: 0.5)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded, color: AppColors.coral),
+          Icon(
+            isError
+                ? Icons.error_outline_rounded
+                : Icons.check_circle_outline_rounded,
+            color: accent,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -308,6 +320,122 @@ class AuthMessageBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "Continue with Google", styled to read as a second-class action next to the
+/// honey-coloured primary button.
+class AuthGoogleButton extends StatelessWidget {
+  const AuthGoogleButton({
+    required this.onPressed,
+    this.label = 'Continue with Google',
+    super.key,
+  });
+
+  final VoidCallback? onPressed;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 54,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: _woodDark,
+          disabledBackgroundColor: Colors.white.withValues(alpha: 0.7),
+          disabledForegroundColor: _woodDark.withValues(alpha: 0.5),
+          elevation: 3,
+          shadowColor: _woodDark.withValues(alpha: 0.28),
+          side: const BorderSide(color: _woodDark, width: 2),
+          textStyle: const TextStyle(
+            fontFamily: 'Fredoka',
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        onPressed: onPressed,
+        icon: const _GoogleGlyph(),
+        label: Text(label),
+      ),
+    );
+  }
+}
+
+class _GoogleGlyph extends StatelessWidget {
+  const _GoogleGlyph();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 26,
+      height: 26,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: SweepGradient(
+          colors: [
+            Color(0xFF4285F4),
+            Color(0xFF34A853),
+            Color(0xFFFBBC05),
+            Color(0xFFEA4335),
+            Color(0xFF4285F4),
+          ],
+        ),
+      ),
+      child: Container(
+        width: 20,
+        height: 20,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+        ),
+        child: const Text(
+          'G',
+          style: TextStyle(
+            color: Color(0xFF4285F4),
+            fontFamily: 'Fredoka',
+            fontSize: 15,
+            height: 1.1,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A hairline with a word in the middle, used to separate the password form
+/// from the Google button.
+class AuthOrDivider extends StatelessWidget {
+  const AuthOrDivider({this.label = 'or', super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    const line = Expanded(
+      child: Divider(color: _woodDark, thickness: 1.4),
+    );
+
+    return Row(
+      children: [
+        line,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: _woodDark,
+              fontFamily: 'Fredoka',
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        line,
+      ],
     );
   }
 }

@@ -12,9 +12,11 @@ Little Learners is a Flutter e-learning app for toddlers ages 1 to 4. This repos
 - SQLite-ready child profile cache with `isSynced` tracking.
 - Sync service foundation for profile upserts and delete outbox items.
 - Content cache foundation for bundled learning modules and Math levels.
+- Navigation runs child profile ▸ modules ▸ levels ▸ sequential content. Each level covers one **portion** of its module (English `A – F`, then `G – L`), the levels screen names that portion, a level unlocks only once the previous one is finished, and inside a level the child meets A before B before C.
 - Interactive Math counting/matching activity flow.
 - Cached level download state for unlocked later levels.
-- Child profile selection.
+- Child selection screen as the landing screen after sign-in: learner faces and names only, with the parent dashboard behind a parental-lock button.
+- Six ready-made avatars plus camera/gallery profile photos, each asked for with an in-app consent step before the system permission prompt.
 - Child learning dashboard.
 - Module level map and unlock logic.
 - Generic activity, quiz, reward flow.
@@ -36,6 +38,10 @@ Little Learners is a Flutter e-learning app for toddlers ages 1 to 4. This repos
 - Media asset backend pipeline with upload/list/delete repositories, Firestore metadata, and local demo storage.
 - Privacy-aware leaderboard backend for opt-in, anonymized, age-stage grouped child rankings.
 - Notification delivery backend that turns due reminder preferences into delivery/read records.
+- Device-scheduled learning reminders through `flutter_local_notifications`, so a reminder fires with the app closed and returns after a reboot.
+- In-app notification centre with unread badge, mark-as-read, swipe-to-delete, and a catch-up pass for reminders that fired while the app was shut.
+- Google sign-in alongside email/password, sharing one parent document and onboarding path.
+- Password reset through Firebase's own reset email, with the link and the new-password page handled by Firebase.
 - Sync orchestration with connectivity-aware task skipping and retry/backoff state.
 - Admin publishing workflow with draft, review, published status, versioning, and publish timestamps.
 - Parent reporting dashboard for child progress, quiz scores, rewards, watched videos, and profile activity.
@@ -134,7 +140,7 @@ Firebase mode currently persists:
 
 Local demo mode treats `admin@littlelearners.local` as an admin email after signup. For Firebase mode, promote an approved account by setting `parents/{uid}.role` to `admin` from a trusted backend/admin console. A draft Firestore rules file is included at `firestore.rules` to enforce the same content-admin boundary server-side.
 
-Security rules are included in `firestore.rules` and `storage.rules`. Deploy them with `firebase deploy --only firestore:rules,firestore:indexes,storage` after authenticating the Firebase CLI. The supplied Android JSON does not configure iOS; add `GoogleService-Info.plist` or run `flutterfire configure` before building for Apple platforms.
+Security rules are included in `firestore.rules` and `storage.rules`. Deploy them with `firebase deploy --only firestore:rules,firestore:indexes,storage` after authenticating the Firebase CLI. Password reset email templates are configured in the Firebase console — see `MANUAL_SETUP.md` item 0b, and item 0a for the Google sign-in fingerprints. The supplied Android JSON does not configure iOS; add `GoogleService-Info.plist` or run `flutterfire configure` before building for Apple platforms.
 
 ## Audio Cues
 
