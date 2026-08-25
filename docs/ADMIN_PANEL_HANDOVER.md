@@ -39,6 +39,7 @@ All six admin requirements and use cases UC-18, UC-19, UC-20.
 | Admin read rules | `firestore.rules` |
 | Admin role schema (2026-08-26) | `lib/models/admin_role.dart`, `lib/models/admin_user.dart`, `lib/services/firebase/admin_user_firestore_service.dart` |
 | Firebase connection seam (2026-08-26) | `lib/core/config/firebase_web_options.dart`, `docs/FIREBASE_ADMIN_SETUP.md` |
+| Shared admin visual language (2026-08-26) | `lib/views/admin/widgets/admin_theme.dart` |
 
 **Important:** the admin panel was **not** greenfield. A dashboard, an 803-line
 content CRUD page with a draft/review/published workflow, `AuthorizedAdminContentRepository`
@@ -97,6 +98,23 @@ to `contentAdmin`, behind `allowLegacyParentRole` in `app.dart`.
 **`moduleId` on `MediaAsset` is nullable.** The storage layer stays usable for
 app-wide assets (splash art, Koala Guide audio). The "media belongs to a module"
 rule is enforced in the admin upload path, which is where UC-19 scopes it.
+
+**The admin panel borrows the parent dashboard's visual language, deliberately
+(2026-08-26).** Both are grown-up screens, so the portal uses the same
+grape→violet header gradient, the same lilac-outlined panel cards at an 18px
+radius, and the same accent-washed tiles. Admin identity comes from *content* —
+role labels, the shield icon, the menu — not from a separate colour scheme, so
+the portal cannot drift from the app as the team restyles it.
+
+Everything shared lives in `lib/views/admin/widgets/admin_theme.dart`, which
+`admin_scaffold.dart` re-exports; a screen still needs only the one import.
+**Restyle by editing that file, not by adding local one-off decorations** —
+per-screen hex values are exactly what this replaced. If the team changes
+`AppColors` or the dashboard's shapes, the panel should be re-checked against
+them, since it is tracking that design rather than owning one.
+
+Note this is a *theming* pass only. The charts and the wider UI/UX work the
+project owner deferred are still deferred; §8 still lists them.
 
 ---
 
@@ -295,6 +313,14 @@ Older tutorials will mislead you.
 | Runs in Chrome, demo mode | Verified, no runtime exceptions |
 | Runs against Firebase | **Never attempted** — see §3.1 |
 | Runs on Android/iOS | **Never attempted** — no SDK on this machine |
+
+**The theming pass was not visually reviewed on a phone.** It was checked in
+Chrome at desktop width. The layouts are built from `Wrap`, `Expanded` and
+`ListView` with no fixed widths, and the pill rows were introduced specifically
+because the previous `ListTile` trailing rows overflowed on narrow screens — but
+"should reflow" is reasoning, not a screenshot. Look at the dashboard hero
+(three stats in a row) and the content rows on a real handset before signing
+this off.
 
 Intermediate commits are grouped as coherent thematic units for reviewability;
 the **final branch state** is what was verified above.
