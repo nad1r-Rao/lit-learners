@@ -100,8 +100,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   }
 
   /// Firebase is only really live when it both was asked for and started.
-  bool get _isFirebaseLive =>
-      AppConfig.useFirebase && Firebase.apps.isNotEmpty;
+  bool get _isFirebaseLive => AppConfig.useFirebase && Firebase.apps.isNotEmpty;
 
   Future<void> _submit(BuildContext context) async {
     final adminAuth = context.read<AdminAuthViewModel>();
@@ -126,26 +125,29 @@ class _LocalDataNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Shaped like AuthMessageBanner — 8px corners, wood-brown Fredoka text —
+    // so it sits with the sign-in banners rather than beside them.
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.lemon,
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.lemon.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.honey),
       ),
       child: const Padding(
-        padding: EdgeInsets.all(12),
+        padding: EdgeInsets.all(10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.cloud_off_outlined, size: 20, color: AppColors.ink),
-            SizedBox(width: 10),
+            Icon(Icons.cloud_off_rounded, size: 20, color: _noticeBrown),
+            SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Not connected to Firebase. Anything you change here stays on '
                 'this device and is lost on reload.',
                 style: TextStyle(
-                  color: AppColors.ink,
-                  fontWeight: FontWeight.w600,
+                  color: _noticeBrown,
+                  fontFamily: 'Fredoka',
+                  fontWeight: FontWeight.w700,
                   fontSize: 12,
                   height: 1.35,
                 ),
@@ -157,3 +159,7 @@ class _LocalDataNotice extends StatelessWidget {
     );
   }
 }
+
+/// The wood brown the auth banners write in. Kept local because the shell
+/// keeps its own copy private.
+const _noticeBrown = Color(0xFF6F3D20);
