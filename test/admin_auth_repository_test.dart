@@ -1,12 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:little_learners/models/parent_account.dart';
+import 'package:little_learners/models/admin_role.dart';
 import 'package:little_learners/repositories/admin_auth_repository.dart';
 
 void main() {
   group('InMemoryAdminAuthRepository', () {
     test('signs in a seeded admin and exposes the admin role', () async {
       final repository = InMemoryAdminAuthRepository(
-        adminCredentials: const {'admin@example.com': 'Secret1!'},
+        admins: const {
+          'admin@example.com': (
+            password: 'Secret1!',
+            role: AdminRole.superAdmin,
+            isActive: true,
+          ),
+        },
       );
 
       final admin = await repository.signIn(
@@ -14,14 +20,20 @@ void main() {
         password: 'Secret1!',
       );
 
-      expect(admin.role, ParentRole.admin);
-      expect(admin.canManageAdminContent, isTrue);
+      expect(admin.role, AdminRole.superAdmin);
+      expect(admin.canManageContent, isTrue);
       expect(await repository.currentAdmin(), isNotNull);
     });
 
     test('normalizes email casing and surrounding whitespace', () async {
       final repository = InMemoryAdminAuthRepository(
-        adminCredentials: const {'admin@example.com': 'Secret1!'},
+        admins: const {
+          'admin@example.com': (
+            password: 'Secret1!',
+            role: AdminRole.superAdmin,
+            isActive: true,
+          ),
+        },
       );
 
       final admin = await repository.signIn(
@@ -34,7 +46,13 @@ void main() {
 
     test('rejects a wrong password with the UC-18 message', () async {
       final repository = InMemoryAdminAuthRepository(
-        adminCredentials: const {'admin@example.com': 'Secret1!'},
+        admins: const {
+          'admin@example.com': (
+            password: 'Secret1!',
+            role: AdminRole.superAdmin,
+            isActive: true,
+          ),
+        },
       );
 
       await expectLater(
@@ -53,7 +71,13 @@ void main() {
     test('rejects an unknown account without revealing which half failed',
         () async {
       final repository = InMemoryAdminAuthRepository(
-        adminCredentials: const {'admin@example.com': 'Secret1!'},
+        admins: const {
+          'admin@example.com': (
+            password: 'Secret1!',
+            role: AdminRole.superAdmin,
+            isActive: true,
+          ),
+        },
       );
 
       await expectLater(
@@ -70,7 +94,13 @@ void main() {
 
     test('signing out clears the session (UC-20)', () async {
       final repository = InMemoryAdminAuthRepository(
-        adminCredentials: const {'admin@example.com': 'Secret1!'},
+        admins: const {
+          'admin@example.com': (
+            password: 'Secret1!',
+            role: AdminRole.superAdmin,
+            isActive: true,
+          ),
+        },
       );
       await repository.signIn(
         email: 'admin@example.com',

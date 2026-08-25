@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../models/parent_account.dart';
+import '../models/admin_user.dart';
 import '../repositories/admin_auth_repository.dart';
 
 enum AdminAuthStatus { idle, loading, authenticated, unauthenticated }
@@ -12,11 +12,11 @@ class AdminAuthViewModel extends ChangeNotifier {
 
   final AdminAuthRepository _adminAuthRepository;
 
-  ParentAccount? _admin;
+  AdminUser? _admin;
   AdminAuthStatus _status = AdminAuthStatus.idle;
   String? _errorMessage;
 
-  ParentAccount? get admin => _admin;
+  AdminUser? get admin => _admin;
   AdminAuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _status == AdminAuthStatus.loading;

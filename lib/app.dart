@@ -138,8 +138,13 @@ final AdminKoalaGuideRepository _baseAdminKoalaGuideRepository =
           );
 // UC-18: the admin portal runs on its own session, so admin work authorizes
 // against [_adminAuthRepository] rather than the signed-in parent.
+//
+// Admin identity comes from `adminUsers/{uid}` — see
+// docs/FIREBASE_ADMIN_SETUP.md. Set allowLegacyParentRole to false once every
+// admin has an adminUsers document, and drop isLegacyAdminParent() from
+// firestore.rules at the same time.
 final AdminAuthRepository _adminAuthRepository = _firebaseEnabled
-    ? FirebaseAdminAuthRepository()
+    ? FirebaseAdminAuthRepository(allowLegacyParentRole: true)
     : InMemoryAdminAuthRepository();
 final _adminAuthorizationRepository = AdminSessionAuthorizationRepository(
   _adminAuthRepository,

@@ -2,22 +2,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-import '../models/parent_account.dart';
+import '../models/admin_user.dart';
+import '../services/firebase/admin_user_firestore_service.dart';
 import 'admin_auth_repository.dart';
 
 /// Firebase-backed admin authentication (UC-18).
 ///
 /// Runs against a secondary [FirebaseApp] so the admin's Firebase Auth session
 /// is genuinely independent of the parent session on the default app. Without
-/// this, signing in as an admin would replace `FirebaseAuth.instance.currentUser`
-/// and leak admin identity into the parent/child flow.
+/// this, signing in as an admin would replace
+/// `FirebaseAuth.instance.currentUser` and leak admin identity into the
+/// parent/child flow.
+///
+/// Admin identity comes from `adminUsers/{uid}` — see
+/// [AdminUserFirestoreService] for the schema and
+/// `docs/FIREBASE_ADMIN_SETUP.md` for the console steps.
 class FirebaseAdminAuthRepository implements AdminAuthRepository {
-  FirebaseAdminAuthRepository({String adminAppName = 'littleLearnersAdmin'})
-      : _adminAppName = adminAppName;
-
-  static const _adminRoleValue = 'admin';
+  FirebaseAdminAuthRepository({
+    String adminAppName = 'littleLearnersAdmin',
+    bool allowLegacyParentRole = true,
+  })  : _adminAppName = adminAppName,
+        _allowLegacyParentRole = allowLegacyParentRole;
 
   final String _adminAppName;
+  final bool _allowLegacyParentRole;
   FirebaseApp? _adminApp;
 
   Future<FirebaseApp> _app() async {
@@ -38,26 +46,31 @@ class FirebaseAdminAuthRepository implements AdminAuthRepository {
     return app;
   }
 
-  Future<FirebaseAuth> _auth() async => FirebaseAuth.instanceFor(app: await _app());
+  Future<FirebaseAuth> _auth() async =>
+      FirebaseAuth.instanceFor(app: await _app());
 
-  Future<FirebaseFirestore> _firestore() async =>
-      FirebaseFirestore.instanceFor(app: await _app());
-
-  @override
-  Future<ParentAccount?> currentAdmin() async {
-    final user = (await _auth()).currentUser;
-    if (user == null) return null;
-
-    final account = await _accountForUser(user);
-    if (account == null) {
-      await signOut();
-      return null;
-    }
-    return account;
+  Future<AdminUserRemoteDataSource> _directory() async {
+    return AdminUserFirestoreService(
+      firestore: FirebaseFirestore.instanceFor(app: await _app()),
+      allowLegacyParentRole: _allowLegacyParentRole,
+    );
   }
 
   @override
-  Future<ParentAccount> signIn({
+  Future<AdminUser?> currentAdmin() async {
+    final user = (await _auth()).currentUser;
+    if (user == null) return null;
+
+    final admin = await _adminFor(user);
+    if (admin == null || !admin.canSignIn) {
+      await signOut();
+      return null;
+    }
+    return admin;
+  }
+
+  @override
+  Future<AdminUser> signIn({
     required String email,
     required String password,
   }) async {
@@ -79,14 +92,19 @@ class FirebaseAdminAuthRepository implements AdminAuthRepository {
       throw const AdminAuthException(AdminAuthMessages.invalidCredentials);
     }
 
-    final account = await _accountForUser(user);
-    if (account == null) {
-      // Credentials were valid but this is a parent account, not an admin.
+    final admin = await _adminFor(user);
+    if (admin == null) {
+      // Credentials were valid but there is no admin record for this account.
       await signOut();
       throw const AdminAuthException(AdminAuthMessages.notAnAdmin);
     }
 
-    return account;
+    if (!admin.canSignIn) {
+      await signOut();
+      throw const AdminAuthException(AdminAuthMessages.suspended);
+    }
+
+    return admin;
   }
 
   @override
@@ -94,26 +112,11 @@ class FirebaseAdminAuthRepository implements AdminAuthRepository {
     await (await _auth()).signOut();
   }
 
-  /// Returns the account only when `parents/{uid}.role == 'admin'`.
-  Future<ParentAccount?> _accountForUser(User user) async {
-    final firestore = await _firestore();
-    final snapshot = await firestore.collection('parents').doc(user.uid).get();
-    if (!snapshot.exists) return null;
-
-    final data = snapshot.data() ?? const <String, dynamic>{};
-    if (!_isAdmin(data)) return null;
-
-    return ParentAccount(
-      id: user.uid,
-      email: user.email ?? (data['email'] as String? ?? ''),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      role: ParentRole.admin,
+  Future<AdminUser?> _adminFor(User user) async {
+    final directory = await _directory();
+    return directory.findAdmin(
+      uid: user.uid,
+      email: user.email ?? '',
     );
-  }
-
-  bool _isAdmin(Map<String, dynamic> data) {
-    if (data['isAdmin'] == true) return true;
-    final role = data['role'];
-    return role is String && role.trim().toLowerCase() == _adminRoleValue;
   }
 }

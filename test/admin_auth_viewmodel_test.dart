@@ -1,10 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:little_learners/models/admin_role.dart';
 import 'package:little_learners/repositories/admin_auth_repository.dart';
 import 'package:little_learners/viewmodels/admin_auth_viewmodel.dart';
 
 class _FailingSignOutAdminAuthRepository extends InMemoryAdminAuthRepository {
   _FailingSignOutAdminAuthRepository()
-      : super(adminCredentials: const {'admin@example.com': 'Secret1!'});
+      : super(
+          admins: const {
+            'admin@example.com': (
+              password: 'Secret1!',
+              role: AdminRole.superAdmin,
+              isActive: true,
+            ),
+          },
+        );
 
   @override
   Future<void> signOut() async {
@@ -17,7 +26,13 @@ void main() {
     test('authenticates a valid admin', () async {
       final viewModel = AdminAuthViewModel(
         InMemoryAdminAuthRepository(
-          adminCredentials: const {'admin@example.com': 'Secret1!'},
+          admins: const {
+            'admin@example.com': (
+              password: 'Secret1!',
+              role: AdminRole.superAdmin,
+              isActive: true,
+            ),
+          },
         ),
       );
 
@@ -35,7 +50,13 @@ void main() {
     test('surfaces the UC-18 message for bad credentials', () async {
       final viewModel = AdminAuthViewModel(
         InMemoryAdminAuthRepository(
-          adminCredentials: const {'admin@example.com': 'Secret1!'},
+          admins: const {
+            'admin@example.com': (
+              password: 'Secret1!',
+              role: AdminRole.superAdmin,
+              isActive: true,
+            ),
+          },
         ),
       );
 
@@ -61,7 +82,13 @@ void main() {
     test('signOut ends the session', () async {
       final viewModel = AdminAuthViewModel(
         InMemoryAdminAuthRepository(
-          adminCredentials: const {'admin@example.com': 'Secret1!'},
+          admins: const {
+            'admin@example.com': (
+              password: 'Secret1!',
+              role: AdminRole.superAdmin,
+              isActive: true,
+            ),
+          },
         ),
       );
       await viewModel.signIn(
