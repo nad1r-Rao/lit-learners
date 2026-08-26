@@ -6,8 +6,11 @@ import '../services/firebase/firestore_koala_guide_remote_data_source.dart';
 import 'admin_koala_guide_repository.dart';
 
 class FirestoreAdminKoalaGuideRepository implements AdminKoalaGuideRepository {
-  FirestoreAdminKoalaGuideRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  /// [firestore] must be Firestore on the *admin* app — see
+  /// [AdminFirebaseApp].
+  const FirestoreAdminKoalaGuideRepository({
+    required FirebaseFirestore firestore,
+  }) : _firestore = firestore;
 
   final FirebaseFirestore _firestore;
 

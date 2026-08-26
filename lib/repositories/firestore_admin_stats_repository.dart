@@ -9,8 +9,11 @@ import 'admin_stats_repository.dart';
 /// query here fails with permission-denied, because parents may otherwise only
 /// read their own documents.
 class FirestoreAdminStatsRepository implements AdminStatsRepository {
-  FirestoreAdminStatsRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  /// [firestore] must be Firestore on the *admin* app — see
+  /// [AdminFirebaseApp]. Required rather than defaulted, because the default
+  /// instance runs as the parent and every query here would be denied.
+  const FirestoreAdminStatsRepository({required FirebaseFirestore firestore})
+      : _firestore = firestore;
 
   static const parentsCollection = 'parents';
   static const childProfilesCollection = 'childProfiles';
@@ -22,7 +25,8 @@ class FirestoreAdminStatsRepository implements AdminStatsRepository {
 
   @override
   Future<AdminStats> loadStats() async {
-    final parentCount = await _countOf(_firestore.collection(parentsCollection));
+    final parentCount =
+        await _countOf(_firestore.collection(parentsCollection));
     final childCount =
         await _countOf(_firestore.collectionGroup(childProfilesCollection));
 

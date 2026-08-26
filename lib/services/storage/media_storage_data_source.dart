@@ -27,8 +27,11 @@ abstract class MediaStorageDataSource {
 }
 
 class FirebaseMediaStorageDataSource implements MediaStorageDataSource {
-  FirebaseMediaStorageDataSource({FirebaseStorage? storage})
-      : _storage = storage ?? FirebaseStorage.instance;
+  /// [storage] must be Storage on the *admin* app: `storage.rules` checks
+  /// the same admin identity Firestore does, so an upload issued on the
+  /// default app is denied.
+  const FirebaseMediaStorageDataSource({required FirebaseStorage storage})
+      : _storage = storage;
 
   final FirebaseStorage _storage;
 
