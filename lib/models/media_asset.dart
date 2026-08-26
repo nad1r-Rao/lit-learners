@@ -12,6 +12,7 @@ class MediaAsset {
     required this.createdByParentId,
     required this.createdAt,
     required this.updatedAt,
+    this.moduleId,
   });
 
   final String id;
@@ -25,6 +26,12 @@ class MediaAsset {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// Module this asset belongs to.
+  ///
+  /// UC-19 requires admin-uploaded media to be tied to a module; the field is
+  /// nullable so the storage layer stays usable for app-wide assets.
+  final String? moduleId;
+
   MediaAsset copyWith({
     MediaAssetType? type,
     String? fileName,
@@ -35,6 +42,7 @@ class MediaAsset {
     String? createdByParentId,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? moduleId,
   }) {
     return MediaAsset(
       id: id,
@@ -47,6 +55,7 @@ class MediaAsset {
       createdByParentId: createdByParentId ?? this.createdByParentId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      moduleId: moduleId ?? this.moduleId,
     );
   }
 }

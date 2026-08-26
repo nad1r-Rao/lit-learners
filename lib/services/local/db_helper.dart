@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 
@@ -10,8 +11,15 @@ class LocalDbHelper {
     final existing = _database;
     if (existing != null) return existing;
 
-    final databasePath = await getDatabasesPath();
-    final fullPath = path.join(databasePath, LocalDbSchema.databaseName);
+    // The web factory is backed by IndexedDB and keys databases by plain name,
+    // so there is no directory to resolve there.
+    final String fullPath;
+    if (kIsWeb) {
+      fullPath = LocalDbSchema.databaseName;
+    } else {
+      final databasePath = await getDatabasesPath();
+      fullPath = path.join(databasePath, LocalDbSchema.databaseName);
+    }
     final opened = await openDatabase(
       fullPath,
       version: LocalDbSchema.version,

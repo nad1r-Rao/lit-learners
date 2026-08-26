@@ -11,6 +11,7 @@ abstract class MediaAssetRepository {
     required String fileName,
     required String contentType,
     required List<int> bytes,
+    String? moduleId,
   });
 
   Future<void> deleteAsset(String assetId);
@@ -41,6 +42,7 @@ class InMemoryMediaAssetRepository implements MediaAssetRepository {
     required String fileName,
     required String contentType,
     required List<int> bytes,
+    String? moduleId,
   }) async {
     _validateUpload(fileName: fileName, bytes: bytes);
     final now = DateTime.now();
@@ -66,6 +68,7 @@ class InMemoryMediaAssetRepository implements MediaAssetRepository {
       createdByParentId: parentId,
       createdAt: now,
       updatedAt: now,
+      moduleId: moduleId,
     );
     _assetsById[asset.id] = asset;
     return asset;
@@ -104,6 +107,7 @@ class AuthorizedMediaAssetRepository implements MediaAssetRepository {
     required String fileName,
     required String contentType,
     required List<int> bytes,
+    String? moduleId,
   }) async {
     await _authorizationRepository.requireContentAdmin();
     return _delegate.createAsset(
@@ -112,6 +116,7 @@ class AuthorizedMediaAssetRepository implements MediaAssetRepository {
       fileName: fileName,
       contentType: contentType,
       bytes: bytes,
+      moduleId: moduleId,
     );
   }
 

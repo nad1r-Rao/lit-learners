@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/app_colors.dart';
+import '../../core/routing/route_names.dart';
 import '../../models/admin_content.dart';
 import '../../models/koala_guide_message.dart';
 import '../../models/learning_level.dart';
 import '../../models/learning_module.dart';
+import '../../viewmodels/admin_auth_viewmodel.dart';
 import '../../viewmodels/admin_content_viewmodel.dart';
-import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/app_primary_button.dart';
 import '../../widgets/koala_guide.dart';
+import 'widgets/admin_scaffold.dart';
 
 class AdminContentPage extends StatefulWidget {
   const AdminContentPage({super.key});
@@ -50,8 +53,8 @@ class _AdminContentPageState extends State<AdminContentPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final parent = context.watch<AuthViewModel>().parent;
-    if (parent?.canManageAdminContent == true && !_didRequestLoad) {
+    final isAdmin = context.watch<AdminAuthViewModel>().isAuthenticated;
+    if (isAdmin && !_didRequestLoad) {
       _didRequestLoad = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -85,114 +88,106 @@ class _AdminContentPageState extends State<AdminContentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthViewModel>();
-    if (auth.isLoading) {
-      return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
-      );
-    }
-
-    if (auth.parent?.canManageAdminContent != true) {
-      return const _AdminAccessDeniedPage();
-    }
-
     final admin = context.watch<AdminContentViewModel>();
     final modules = admin.modules;
     _selectedModuleId ??= modules.isEmpty ? null : modules.first.module.id;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Content'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh content',
-            onPressed: admin.isLoading
-                ? null
-                : () => context.read<AdminContentViewModel>().loadContent(),
-            icon: const Icon(Icons.refresh),
+    return AdminScaffold(
+      title: 'Manage Content',
+      subtitle: 'Modules, levels and quizzes',
+      actions: [
+        AdminHeaderAction(
+          tooltip: 'Media library',
+          icon: Icons.perm_media_rounded,
+          onPressed: () =>
+              Navigator.of(context).pushNamed(RouteNames.adminMedia),
+        ),
+        const SizedBox(width: 4),
+        AdminHeaderAction(
+          tooltip: 'Refresh content',
+          icon: Icons.refresh,
+          onPressed: admin.isLoading
+              ? null
+              : () => context.read<AdminContentViewModel>().loadContent(),
+        ),
+      ],
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const ContextualKoalaGuide(
+            trigger: KoalaGuideTrigger.adminContent,
+            audience: KoalaGuideAudience.parent,
+            fallbackMessage: 'Manage draft and published content for learners.',
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const ContextualKoalaGuide(
-              trigger: KoalaGuideTrigger.adminContent,
-              audience: KoalaGuideAudience.parent,
-              fallbackMessage:
-                  'Manage draft and published content for learners.',
+          const SizedBox(height: 16),
+          if (admin.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else ...[
+            _AdminStatus(admin: admin),
+            _ModuleList(modules: modules),
+            const SizedBox(height: 12),
+            _LevelList(levels: admin.levels),
+            const SizedBox(height: 16),
+            _ModuleForm(
+              idController: _moduleIdController,
+              titleController: _moduleTitleController,
+              descriptionController: _moduleDescriptionController,
+              orderController: _moduleOrderController,
+              category: _moduleCategory,
+              minStage: _moduleMinStage,
+              maxStage: _moduleMaxStage,
+              isPublished: _modulePublished,
+              onCategoryChanged: (value) {
+                setState(() => _moduleCategory = value);
+              },
+              onMinStageChanged: (value) {
+                setState(() => _moduleMinStage = value);
+              },
+              onMaxStageChanged: (value) {
+                setState(() => _moduleMaxStage = value);
+              },
+              onPublishedChanged: (value) {
+                setState(() => _modulePublished = value);
+              },
+              onSubmit: _createModule,
             ),
             const SizedBox(height: 16),
-            if (admin.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else ...[
-              _AdminStatus(admin: admin),
-              _ModuleList(modules: modules),
-              const SizedBox(height: 12),
-              _LevelList(levels: admin.levels),
-              const SizedBox(height: 16),
-              _ModuleForm(
-                idController: _moduleIdController,
-                titleController: _moduleTitleController,
-                descriptionController: _moduleDescriptionController,
-                orderController: _moduleOrderController,
-                category: _moduleCategory,
-                minStage: _moduleMinStage,
-                maxStage: _moduleMaxStage,
-                isPublished: _modulePublished,
-                onCategoryChanged: (value) {
-                  setState(() => _moduleCategory = value);
-                },
-                onMinStageChanged: (value) {
-                  setState(() => _moduleMinStage = value);
-                },
-                onMaxStageChanged: (value) {
-                  setState(() => _moduleMaxStage = value);
-                },
-                onPublishedChanged: (value) {
-                  setState(() => _modulePublished = value);
-                },
-                onSubmit: _createModule,
-              ),
-              const SizedBox(height: 16),
-              _LevelForm(
-                modules: modules,
-                selectedModuleId: _selectedModuleId,
-                idController: _levelIdController,
-                titleController: _levelTitleController,
-                subtitleController: _levelSubtitleController,
-                levelNumberController: _levelNumberController,
-                passingScoreController: _levelPassingScoreController,
-                contentTitleController: _contentTitleController,
-                contentPromptController: _contentPromptController,
-                contentDisplayController: _contentDisplayController,
-                contentVisualController: _contentVisualController,
-                quizPromptController: _quizPromptController,
-                quizOptionsController: _quizOptionsController,
-                quizCorrectIndexController: _quizCorrectIndexController,
-                videoTitleController: _videoTitleController,
-                videoUrlController: _videoUrlController,
-                stage: _levelStage,
-                type: _levelType,
-                isPublished: _levelPublished,
-                onModuleChanged: (value) {
-                  setState(() => _selectedModuleId = value);
-                },
-                onStageChanged: (value) {
-                  setState(() => _levelStage = value);
-                },
-                onTypeChanged: (value) {
-                  setState(() => _levelType = value);
-                },
-                onPublishedChanged: (value) {
-                  setState(() => _levelPublished = value);
-                },
-                onSubmit: _createLevel,
-              ),
-            ],
+            _LevelForm(
+              modules: modules,
+              selectedModuleId: _selectedModuleId,
+              idController: _levelIdController,
+              titleController: _levelTitleController,
+              subtitleController: _levelSubtitleController,
+              levelNumberController: _levelNumberController,
+              passingScoreController: _levelPassingScoreController,
+              contentTitleController: _contentTitleController,
+              contentPromptController: _contentPromptController,
+              contentDisplayController: _contentDisplayController,
+              contentVisualController: _contentVisualController,
+              quizPromptController: _quizPromptController,
+              quizOptionsController: _quizOptionsController,
+              quizCorrectIndexController: _quizCorrectIndexController,
+              videoTitleController: _videoTitleController,
+              videoUrlController: _videoUrlController,
+              stage: _levelStage,
+              type: _levelType,
+              isPublished: _levelPublished,
+              onModuleChanged: (value) {
+                setState(() => _selectedModuleId = value);
+              },
+              onStageChanged: (value) {
+                setState(() => _levelStage = value);
+              },
+              onTypeChanged: (value) {
+                setState(() => _levelType = value);
+              },
+              onPublishedChanged: (value) {
+                setState(() => _levelPublished = value);
+              },
+              onSubmit: _createLevel,
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -255,46 +250,6 @@ class _AdminContentPageState extends State<AdminContentPage> {
   }
 }
 
-class _AdminAccessDeniedPage extends StatelessWidget {
-  const _AdminAccessDeniedPage();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Admin Content')),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.admin_panel_settings,
-                  size: 48,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Admin access required',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'This parent account is not approved to manage content.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _AdminStatus extends StatelessWidget {
   const _AdminStatus({required this.admin});
 
@@ -306,16 +261,13 @@ class _AdminStatus extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Was a bare coloured sentence, which read as body copy rather than as a
+    // result. Same washed banners the rest of the panel uses.
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        admin.errorMessage ?? admin.infoMessage!,
-        style: TextStyle(
-          color: admin.errorMessage == null
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.error,
-        ),
-      ),
+      child: admin.errorMessage != null
+          ? AdminInlineError(message: admin.errorMessage!)
+          : AdminInlineSuccess(message: admin.infoMessage!),
     );
   }
 }
@@ -328,59 +280,64 @@ class _ModuleList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (modules.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('No admin modules yet.'),
-        ),
+      return const AdminEmptyState(
+        icon: Icons.widgets_rounded,
+        title: 'No modules yet',
+        message: 'Use the "Create module" form below to add the first one.',
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Modules',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        const SizedBox(height: 8),
+        const AdminSectionHeading(title: 'Modules'),
+        const SizedBox(height: 10),
         for (final module in modules)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              child: ListTile(
-                title: Text(module.module.title),
-                subtitle: Text(
-                  '${module.module.category.name} - '
-                  'Stages ${module.module.minStage}-${module.module.maxStage} - '
-                  '${_statusLabel(module.publishStatus)} v${module.version}',
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _ContentRow(
+              icon: Icons.widgets_rounded,
+              accent: AppColors.sky,
+              title: module.module.title,
+              pills: [
+                _StatusPill(status: module.publishStatus),
+                AdminPill(
+                  label: module.module.category.name,
+                  accent: AppColors.violet,
                 ),
-                trailing: _AdminActions(
-                  isPublished: module.isPublished,
-                  publishStatus: module.publishStatus,
-                  onPublishedChanged: (value) {
-                    context
-                        .read<AdminContentViewModel>()
-                        .toggleModulePublished(module, value);
-                  },
-                  onSubmitReview: () {
-                    context
-                        .read<AdminContentViewModel>()
-                        .submitModuleForReview(module);
-                  },
-                  onMoveDraft: () {
-                    context
-                        .read<AdminContentViewModel>()
-                        .moveModuleToDraft(module);
-                  },
-                  onDelete: () {
-                    context
-                        .read<AdminContentViewModel>()
-                        .deleteModule(module.module.id);
-                  },
+                AdminPill(
+                  label: 'Stages ${module.module.minStage}'
+                      '-${module.module.maxStage}',
+                  accent: AppColors.aqua,
                 ),
+                AdminPill(
+                  label: 'v${module.version}',
+                  accent: AppColors.plum,
+                ),
+              ],
+              actions: _AdminActions(
+                isPublished: module.isPublished,
+                publishStatus: module.publishStatus,
+                onPublishedChanged: (value) {
+                  context
+                      .read<AdminContentViewModel>()
+                      .toggleModulePublished(module, value);
+                },
+                onSubmitReview: () {
+                  context
+                      .read<AdminContentViewModel>()
+                      .submitModuleForReview(module);
+                },
+                onMoveDraft: () {
+                  context
+                      .read<AdminContentViewModel>()
+                      .moveModuleToDraft(module);
+                },
+                onDelete: () {
+                  context
+                      .read<AdminContentViewModel>()
+                      .deleteModule(module.module.id);
+                },
               ),
             ),
           ),
@@ -397,63 +354,162 @@ class _LevelList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (levels.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('No admin levels yet.'),
-        ),
+      return const AdminEmptyState(
+        icon: Icons.map_rounded,
+        title: 'No levels yet',
+        message: 'Levels belong to a module. Create one below to get started.',
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Levels',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        const SizedBox(height: 8),
+        const AdminSectionHeading(title: 'Levels'),
+        const SizedBox(height: 10),
         for (final level in levels)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              child: ListTile(
-                title: Text(level.level.title),
-                subtitle: Text(
-                  '${level.level.moduleId} - stage ${level.level.stage} - '
-                  '${level.level.type.name} - '
-                  '${_statusLabel(level.publishStatus)} v${level.version}',
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _ContentRow(
+              icon: Icons.map_rounded,
+              accent: AppColors.leaf,
+              title: level.level.title,
+              pills: [
+                _StatusPill(status: level.publishStatus),
+                AdminPill(
+                  icon: Icons.auto_stories_rounded,
+                  label: level.level.moduleId,
+                  accent: AppColors.sky,
                 ),
-                trailing: _AdminActions(
-                  isPublished: level.isPublished,
-                  publishStatus: level.publishStatus,
-                  onPublishedChanged: (value) {
-                    context
-                        .read<AdminContentViewModel>()
-                        .toggleLevelPublished(level, value);
-                  },
-                  onSubmitReview: () {
-                    context
-                        .read<AdminContentViewModel>()
-                        .submitLevelForReview(level);
-                  },
-                  onMoveDraft: () {
-                    context
-                        .read<AdminContentViewModel>()
-                        .moveLevelToDraft(level);
-                  },
-                  onDelete: () {
-                    context
-                        .read<AdminContentViewModel>()
-                        .deleteLevel(level.level.id);
-                  },
+                AdminPill(
+                  label: 'Stage ${level.level.stage}',
+                  accent: AppColors.aqua,
                 ),
+                AdminPill(
+                  label: level.level.type.name,
+                  accent: AppColors.violet,
+                ),
+                AdminPill(
+                  label: 'v${level.version}',
+                  accent: AppColors.plum,
+                ),
+              ],
+              actions: _AdminActions(
+                isPublished: level.isPublished,
+                publishStatus: level.publishStatus,
+                onPublishedChanged: (value) {
+                  context
+                      .read<AdminContentViewModel>()
+                      .toggleLevelPublished(level, value);
+                },
+                onSubmitReview: () {
+                  context
+                      .read<AdminContentViewModel>()
+                      .submitLevelForReview(level);
+                },
+                onMoveDraft: () {
+                  context.read<AdminContentViewModel>().moveLevelToDraft(level);
+                },
+                onDelete: () {
+                  context
+                      .read<AdminContentViewModel>()
+                      .deleteLevel(level.level.id);
+                },
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// A module or level row.
+///
+/// The old `ListTile` crammed four facts into one grey subtitle line and hung
+/// four controls off the trailing edge, which overflowed as soon as a title
+/// was long. Facts are pills now, and the controls sit on their own row.
+class _ContentRow extends StatelessWidget {
+  const _ContentRow({
+    required this.icon,
+    required this.accent,
+    required this.title,
+    required this.pills,
+    required this.actions,
+  });
+
+  final IconData icon;
+  final Color accent;
+  final String title;
+  final List<Widget> pills;
+  final Widget actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminSoftCard(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AdminIconChip(icon: icon, color: accent, size: 38),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 6, runSpacing: 6, children: pills),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Align(alignment: Alignment.centerRight, child: actions),
+        ],
+      ),
+    );
+  }
+}
+
+/// Draft / in review / published, colour-coded so the workflow state is
+/// readable at a glance.
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.status});
+
+  final AdminPublishStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, accent) = switch (status) {
+      AdminPublishStatus.draft => (
+          Icons.edit_note_rounded,
+          AppColors.ink,
+        ),
+      AdminPublishStatus.inReview => (
+          Icons.rate_review_rounded,
+          AppColors.honey,
+        ),
+      AdminPublishStatus.published => (
+          Icons.check_circle_rounded,
+          AppColors.leaf,
+        ),
+    };
+
+    return AdminPill(
+      icon: icon,
+      label: _statusLabel(status),
+      accent: accent,
     );
   }
 }
@@ -480,24 +536,35 @@ class _AdminActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Switch(value: isPublished, onChanged: onPublishedChanged),
+        Tooltip(
+          message: isPublished ? 'Unpublish' : 'Publish',
+          child: Switch(
+            value: isPublished,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.leaf,
+            onChanged: onPublishedChanged,
+          ),
+        ),
         IconButton(
           tooltip: 'Submit for review',
+          color: AppColors.honey,
           onPressed: publishStatus == AdminPublishStatus.inReview
               ? null
               : onSubmitReview,
-          icon: const Icon(Icons.rate_review_outlined),
+          icon: const Icon(Icons.rate_review_rounded),
         ),
         IconButton(
           tooltip: 'Move to draft',
+          color: AppColors.violet,
           onPressed:
               publishStatus == AdminPublishStatus.draft ? null : onMoveDraft,
-          icon: const Icon(Icons.drafts_outlined),
+          icon: const Icon(Icons.edit_note_rounded),
         ),
         IconButton(
           tooltip: 'Delete',
+          color: AppColors.coral,
           onPressed: onDelete,
-          icon: const Icon(Icons.delete_outline),
+          icon: const Icon(Icons.delete_outline_rounded),
         ),
       ],
     );
@@ -545,52 +612,53 @@ class _ModuleForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _FormTitle(title: 'Create module'),
-            _TextField(controller: idController, label: 'Module ID'),
-            _TextField(controller: titleController, label: 'Title'),
-            _TextField(controller: descriptionController, label: 'Description'),
-            _TextField(
-              controller: orderController,
-              label: 'Sort order',
-              keyboardType: TextInputType.number,
-            ),
-            _EnumDropdown<ModuleCategory>(
-              label: 'Category',
-              value: category,
-              values: ModuleCategory.values,
-              onChanged: onCategoryChanged,
-            ),
-            _IntDropdown(
-              label: 'Min stage',
-              value: minStage,
-              values: const [1, 2, 3, 4],
-              onChanged: onMinStageChanged,
-            ),
-            _IntDropdown(
-              label: 'Max stage',
-              value: maxStage,
-              values: const [1, 2, 3, 4],
-              onChanged: onMaxStageChanged,
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Published'),
-              value: isPublished,
-              onChanged: onPublishedChanged,
-            ),
-            AppPrimaryButton(
-              icon: Icons.add,
-              label: 'Save module',
-              onPressed: onSubmit,
-            ),
-          ],
-        ),
+    return AdminSoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _FormTitle(
+            title: 'Create module',
+            icon: Icons.add_box_rounded,
+            accent: AppColors.sky,
+          ),
+          _TextField(controller: idController, label: 'Module ID'),
+          _TextField(controller: titleController, label: 'Title'),
+          _TextField(controller: descriptionController, label: 'Description'),
+          _TextField(
+            controller: orderController,
+            label: 'Sort order',
+            keyboardType: TextInputType.number,
+          ),
+          _EnumDropdown<ModuleCategory>(
+            label: 'Category',
+            value: category,
+            values: ModuleCategory.values,
+            onChanged: onCategoryChanged,
+          ),
+          _IntDropdown(
+            label: 'Min stage',
+            value: minStage,
+            values: const [1, 2, 3, 4],
+            onChanged: onMinStageChanged,
+          ),
+          _IntDropdown(
+            label: 'Max stage',
+            value: maxStage,
+            values: const [1, 2, 3, 4],
+            onChanged: onMaxStageChanged,
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Published'),
+            value: isPublished,
+            onChanged: onPublishedChanged,
+          ),
+          AppPrimaryButton(
+            icon: Icons.add,
+            label: 'Save module',
+            onPressed: onSubmit,
+          ),
+        ],
       ),
     );
   }
@@ -651,111 +719,137 @@ class _LevelForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _FormTitle(title: 'Create level'),
-            DropdownButtonFormField<String>(
-              initialValue: selectedModuleId,
-              decoration: const InputDecoration(labelText: 'Module'),
-              items: [
-                for (final module in modules)
-                  DropdownMenuItem(
-                    value: module.module.id,
-                    child: Text(module.module.title),
-                  ),
-              ],
-              onChanged: onModuleChanged,
-            ),
-            _TextField(controller: idController, label: 'Level ID'),
-            _TextField(controller: titleController, label: 'Title'),
-            _TextField(controller: subtitleController, label: 'Subtitle'),
-            _TextField(
-              controller: levelNumberController,
-              label: 'Level number',
-              keyboardType: TextInputType.number,
-            ),
-            _TextField(
-              controller: passingScoreController,
-              label: 'Passing score',
-              keyboardType: TextInputType.number,
-            ),
-            _IntDropdown(
-              label: 'Stage',
-              value: stage,
-              values: const [1, 2, 3, 4],
-              onChanged: onStageChanged,
-            ),
-            _EnumDropdown<LevelType>(
-              label: 'Level type',
-              value: type,
-              values: LevelType.values,
-              onChanged: onTypeChanged,
-            ),
-            const SizedBox(height: 8),
-            const _FormTitle(title: 'Activity card'),
-            _TextField(controller: contentTitleController, label: 'Card title'),
-            _TextField(controller: contentPromptController, label: 'Prompt'),
-            _TextField(
-              controller: contentDisplayController,
-              label: 'Display text',
-              helperText: type == LevelType.tracing
-                  ? 'Tracing draws and grades this exactly. Enter the single '
-                      'letter or digit to trace, such as A or ا or 5.'
-                  : null,
-            ),
-            _TextField(controller: contentVisualController, label: 'Visual'),
-            const SizedBox(height: 8),
-            const _FormTitle(title: 'Quiz'),
-            _TextField(controller: quizPromptController, label: 'Question'),
-            _TextField(
-              controller: quizOptionsController,
-              label: 'Options comma separated',
-            ),
-            _TextField(
-              controller: quizCorrectIndexController,
-              label: 'Correct option index',
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 8),
-            const _FormTitle(title: 'Video'),
-            _TextField(controller: videoTitleController, label: 'Video title'),
-            _TextField(controller: videoUrlController, label: 'Video URL'),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Published'),
-              value: isPublished,
-              onChanged: onPublishedChanged,
-            ),
-            AppPrimaryButton(
-              icon: Icons.add,
-              label: 'Save level',
-              onPressed: modules.isEmpty ? null : onSubmit,
-            ),
-          ],
-        ),
+    return AdminSoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _FormTitle(
+            title: 'Create level',
+            icon: Icons.add_location_alt_rounded,
+            accent: AppColors.leaf,
+          ),
+          DropdownButtonFormField<String>(
+            initialValue: selectedModuleId,
+            decoration: const InputDecoration(labelText: 'Module'),
+            items: [
+              for (final module in modules)
+                DropdownMenuItem(
+                  value: module.module.id,
+                  child: Text(module.module.title),
+                ),
+            ],
+            onChanged: onModuleChanged,
+          ),
+          _TextField(controller: idController, label: 'Level ID'),
+          _TextField(controller: titleController, label: 'Title'),
+          _TextField(controller: subtitleController, label: 'Subtitle'),
+          _TextField(
+            controller: levelNumberController,
+            label: 'Level number',
+            keyboardType: TextInputType.number,
+          ),
+          _TextField(
+            controller: passingScoreController,
+            label: 'Passing score',
+            keyboardType: TextInputType.number,
+          ),
+          _IntDropdown(
+            label: 'Stage',
+            value: stage,
+            values: const [1, 2, 3, 4],
+            onChanged: onStageChanged,
+          ),
+          _EnumDropdown<LevelType>(
+            label: 'Level type',
+            value: type,
+            values: LevelType.values,
+            onChanged: onTypeChanged,
+          ),
+          const SizedBox(height: 8),
+          const _FormTitle(title: 'Activity card'),
+          _TextField(controller: contentTitleController, label: 'Card title'),
+          _TextField(controller: contentPromptController, label: 'Prompt'),
+          _TextField(
+            controller: contentDisplayController,
+            label: 'Display text',
+            helperText: type == LevelType.tracing
+                ? 'Tracing draws and grades this exactly. Enter the single '
+                    'letter or digit to trace, such as A or ا or 5.'
+                : null,
+          ),
+          _TextField(controller: contentVisualController, label: 'Visual'),
+          const SizedBox(height: 8),
+          const _FormTitle(title: 'Quiz'),
+          _TextField(controller: quizPromptController, label: 'Question'),
+          _TextField(
+            controller: quizOptionsController,
+            label: 'Options comma separated',
+          ),
+          _TextField(
+            controller: quizCorrectIndexController,
+            label: 'Correct option index',
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 8),
+          const _FormTitle(title: 'Video'),
+          _TextField(controller: videoTitleController, label: 'Video title'),
+          _TextField(controller: videoUrlController, label: 'Video URL'),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Published'),
+            value: isPublished,
+            onChanged: onPublishedChanged,
+          ),
+          AppPrimaryButton(
+            icon: Icons.add,
+            label: 'Save level',
+            onPressed: modules.isEmpty ? null : onSubmit,
+          ),
+        ],
       ),
     );
   }
 }
 
 class _FormTitle extends StatelessWidget {
-  const _FormTitle({required this.title});
+  const _FormTitle({required this.title, this.icon, this.accent});
 
   final String title;
 
+  /// Set for the title of a whole form card. Left off for the sub-headings
+  /// that group fields inside one, where a chip per group would be noise.
+  final IconData? icon;
+
+  final Color? accent;
+
   @override
   Widget build(BuildContext context) {
+    final label = Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
+    );
+
+    if (icon == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: label,
+      );
+    }
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        children: [
+          AdminIconChip(
+            icon: icon!,
+            color: accent ?? AppColors.violet,
+            size: 38,
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: label),
+        ],
       ),
     );
   }

@@ -120,6 +120,15 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
+            const Divider(height: 24),
+            TextButton.icon(
+              onPressed: auth.isLoading
+                  ? null
+                  : () =>
+                      Navigator.of(context).pushNamed(RouteNames.adminLogin),
+              icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
+              label: const Text('Admin login'),
+            ),
           ],
         ),
       ),

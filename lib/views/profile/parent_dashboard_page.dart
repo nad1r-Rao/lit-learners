@@ -108,7 +108,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                 backgroundColor: AppColors.honey,
                 foregroundColor: AppColors.ink,
               ),
-              onPressed: () => _openLockedAdminDashboard(context),
+              onPressed: () => _openAdminLogin(context),
               icon: const Icon(Icons.admin_panel_settings_outlined),
             ),
           const SizedBox(width: 8),
@@ -220,13 +220,11 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     );
   }
 
-  void _openLockedAdminDashboard(BuildContext context) {
-    Navigator.of(context).pushNamed(
-      RouteNames.parentalLock,
-      arguments: const ParentalLockArgs(
-        successRoute: RouteNames.adminDashboard,
-      ),
-    );
+  /// UC-18 keeps the admin session separate from the parent session, so this
+  /// shortcut opens the admin login rather than dropping an authenticated
+  /// parent straight into the dashboard. Admin credentials are the gate.
+  void _openAdminLogin(BuildContext context) {
+    Navigator.of(context).pushNamed(RouteNames.adminLogin);
   }
 
   Future<void> _startLearning(

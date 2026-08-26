@@ -10,10 +10,44 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == parentId;
     }
 
-    function isAdmin() {
+    // Admin identity lives in adminUsers/{uid}. Granting access is one
+    // document written from the Firebase console - see
+    // docs/FIREBASE_ADMIN_SETUP.md.
+    function adminDoc() {
+      return get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data;
+    }
+
+    function isAdminRecord() {
       return signedIn()
+        && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid))
+        && adminDoc().get('isActive', true) == true
+        && adminDoc().role in ['superAdmin', 'contentAdmin', 'analyticsViewer'];
+    }
+
+    // Accounts promoted before adminUsers existed. Remove once migrated.
+    function isLegacyAdminParent() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/parents/$(request.auth.uid))
         && get(/databases/$(database)/documents/parents/$(request.auth.uid))
-          .data.role == 'admin';
+          .data.get('role', 'parent') == 'admin';
+    }
+
+    function isAdmin() {
+      return isAdminRecord() || isLegacyAdminParent();
+    }
+
+    function hasAdminRole(roles) {
+      return isAdminRecord() && adminDoc().role in roles;
+    }
+
+    // Authoring content and media. Analytics viewers are excluded.
+    function canManageContent() {
+      return hasAdminRole(['superAdmin', 'contentAdmin']) || isLegacyAdminParent();
+    }
+
+    // The parent account list carries parent emails, so it is super-admin only.
+    function canReadParentAccounts() {
+      return hasAdminRole(['superAdmin']) || isLegacyAdminParent();
     }
 
     function keepsRoleUnchanged() {
@@ -29,15 +63,29 @@ service cloud.firestore {
         );
     }
 
+    match /adminUsers/{adminId} {
+      // The app reads its own record to resolve the signed-in admin's role.
+      // Rule-internal get() bypasses rules, but the client read does not.
+      allow read: if signedIn() && request.auth.uid == adminId;
+
+      // Never writable from a client, or an admin could promote themselves and
+      // anyone who compromised an admin session could mint more admins. Grant
+      // access from the Firebase console or a trusted backend only.
+      allow write: if false;
+    }
+
     match /parents/{parentId} {
       allow create: if isOwnParent(parentId)
         && request.resource.data.role == 'parent';
-      allow read: if isOwnParent(parentId);
+      // Admins read parent documents for the monitoring-only account list.
+      // They can never write them.
+      allow read: if isOwnParent(parentId) || canReadParentAccounts();
       allow update: if isOwnParent(parentId) && keepsRoleUnchanged();
       allow delete: if false;
 
       match /childProfiles/{childId} {
-        allow read, write: if isOwnParent(parentId);
+        allow read: if isOwnParent(parentId) || isAdmin();
+        allow write: if isOwnParent(parentId);
       }
 
       match /learningReminders/{reminderId} {
@@ -50,30 +98,44 @@ service cloud.firestore {
     }
 
     match /childProgress/{childId}/levelProgress/{levelId} {
-      allow read, write: if ownsChildProfile(childId);
+      allow read: if ownsChildProfile(childId) || isAdmin();
+      allow write: if ownsChildProfile(childId);
+    }
+
+    // Collection-group reads for the admin statistics screen.
+    //
+    // Firestore evaluates collection-group queries against these wildcard
+    // matches rather than the nested paths above, so the admin aggregation
+    // queries need them declared explicitly. Read-only, admin-only.
+    match /{path=**}/childProfiles/{childId} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/levelProgress/{levelId} {
+      allow read: if isAdmin();
     }
 
     match /learningModules/{moduleId} {
       allow read: if signedIn()
         && (resource.data.isPublished == true || isAdmin());
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if canManageContent();
     }
 
     match /learningLevels/{levelId} {
       allow read: if signedIn()
         && (resource.data.isPublished == true || isAdmin());
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if canManageContent();
     }
 
     match /koalaGuideMessages/{messageId} {
       allow read: if signedIn()
         && (resource.data.isPublished == true || isAdmin());
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if canManageContent();
     }
 
     match /mediaAssets/{assetId} {
       allow read: if signedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if canManageContent();
     }
 
     match /leaderboards/{stageId}/entries/{childId} {

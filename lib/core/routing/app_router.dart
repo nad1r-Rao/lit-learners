@@ -6,6 +6,10 @@ import '../../models/parent_mark.dart';
 import '../../models/video_lesson.dart';
 import '../../views/admin/admin_content_page.dart';
 import '../../views/admin/admin_dashboard_page.dart';
+import '../../views/admin/admin_login_page.dart';
+import '../../views/admin/admin_media_page.dart';
+import '../../views/admin/admin_parent_accounts_page.dart';
+import '../../views/admin/admin_progress_statistics_page.dart';
 import '../../views/auth/forgot_password_page.dart';
 import '../../views/auth/login_page.dart';
 import '../../views/auth/signup_page.dart';
@@ -141,8 +145,13 @@ class AppRouter {
         RouteNames.onboardingManual => const ManualPage(),
         RouteNames.onboardingLanguage => const OnboardingLanguagePage(),
         RouteNames.onboardingTest => const ReadinessTestPage(),
+        RouteNames.adminLogin => const AdminLoginPage(),
         RouteNames.adminDashboard => const AdminDashboardPage(),
         RouteNames.adminContent => const AdminContentPage(),
+        RouteNames.adminParentAccounts => const AdminParentAccountsPage(),
+        RouteNames.adminProgressStatistics =>
+          const AdminProgressStatisticsPage(),
+        RouteNames.adminMedia => const AdminMediaPage(),
         RouteNames.parentDashboard => const ParentDashboardPage(),
         RouteNames.childSelection => const ChildSelectionPage(),
         RouteNames.profileEdit => ProfileCreateEditPage(

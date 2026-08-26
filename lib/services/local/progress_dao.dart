@@ -8,6 +8,9 @@ import 'progress_mapper.dart';
 abstract class ProgressDao {
   Future<List<LevelProgress>> getByChild(String childId);
 
+  /// Every progress row across all children, for admin statistics.
+  Future<List<LevelProgress>> getAll();
+
   Future<LevelProgress?> getByLevel({
     required String childId,
     required String levelId,
@@ -35,6 +38,16 @@ class SqfliteProgressDao implements ProgressDao {
       LocalDbSchema.levelProgress,
       where: 'childId = ?',
       whereArgs: [childId],
+      orderBy: 'updatedAt DESC',
+    );
+    return rows.map(ProgressMapper.fromLocalMap).toList();
+  }
+
+  @override
+  Future<List<LevelProgress>> getAll() async {
+    final db = await _dbHelper.database;
+    final rows = await db.query(
+      LocalDbSchema.levelProgress,
       orderBy: 'updatedAt DESC',
     );
     return rows.map(ProgressMapper.fromLocalMap).toList();
@@ -101,6 +114,12 @@ class InMemoryProgressDao implements ProgressDao {
     return _progressByKey.values
         .where((progress) => progress.childId == childId)
         .toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
+  @override
+  Future<List<LevelProgress>> getAll() async {
+    return _progressByKey.values.toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
