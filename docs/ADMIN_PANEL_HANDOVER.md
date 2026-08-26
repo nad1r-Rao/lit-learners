@@ -138,6 +138,10 @@ As of 2026-08-26 this also covers `AdminUserFirestoreService` and the
 `adminUsers` rules. The demo-mode equivalents are tested; the Firestore reads
 are not.
 
+**Update — the first real run found a real bug. See §3.8.** Treat the rest of
+this section as still live: one defect surfacing does not mean the others were
+checked.
+
 ### 3.2 A published module can still have no levels
 
 The UC-19 rule "each module must have at least one level" is enforced in
@@ -204,6 +208,35 @@ Replaced by `LocalAdminStatsRepository`, which computes from live DAOs.
 `InMemoryAdminStatsRepository` still exists for tests. **Do not wire it into the
 app.** If a metric cannot be computed, surface that rather than inventing a
 number.
+
+### 3.8 The two-app split — the bug the first real run found
+
+**Fixed 2026-08-26, but the shape of it is worth keeping.**
+
+UC-18 puts the admin session on a **secondary `FirebaseApp`**
+(`littleLearnersAdmin`) so admin sign-in cannot replace
+`FirebaseAuth.instance.currentUser`. The consequence is not obvious: **every
+admin Firestore _and Storage_ call must use that app too.**
+
+Admin identity resolved on the secondary app, but statistics, content, media
+and the koala guide all queried `FirebaseFirestore.instance` — the default app,
+where the admin is not signed in. The rules evaluated `isAdmin()` against the
+parent's uid, or none at all, and denied everything.
+
+The failure is nastily misleading: **login succeeds**, the dashboard renders,
+the role shows correctly — and then every screen fails with
+`PERMISSION_DENIED: Missing or insufficient permissions`. It reads exactly like
+undeployed rules or a bad console setup. It is neither. Before anyone
+redeploys rules chasing a permission error, check *which app* the query is on.
+
+Guarded structurally rather than by a test: `firestore` and `storage` are now
+**required** constructor arguments on the admin repositories, so passing the
+wrong instance is a compile error. `AdminFirebaseApp` owns the app and throws
+rather than falling back to the default instance — a silent fallback is the bug.
+
+A unit test could not have caught this; it needs a real project, a real admin
+account and deployed rules. If a Firebase emulator suite is ever set up, this
+is the first thing to point it at.
 
 ---
 

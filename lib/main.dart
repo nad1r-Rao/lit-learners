@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/config/firebase_web_options.dart';
+import 'services/firebase/admin_firebase_app.dart';
 import 'services/local/db_factory.dart';
 
 Future<void> main() async {
@@ -34,6 +35,7 @@ Future<void> _initializeFirebase() async {
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
     );
+    await _initializeAdminApp();
   } catch (error) {
     debugPrint('=' * 72);
     debugPrint('Firebase did not start. The app is running on local data only.');
@@ -45,6 +47,27 @@ Future<void> _initializeFirebase() async {
       debugPrint('passed in. Missing: ${FirebaseWebOptions.missingKeys.join(', ')}');
       debugPrint('See docs/FIREBASE_ADMIN_SETUP.md.');
     }
+    debugPrint('=' * 72);
+  }
+}
+
+/// Brings up the secondary app the admin portal runs on.
+///
+/// Done here, at startup, rather than lazily on sign-in: the admin
+/// repositories are built when the provider tree is created, and they need a
+/// real Firestore instance on this app at that moment. See [AdminFirebaseApp]
+/// for why the default instance will not do.
+Future<void> _initializeAdminApp() async {
+  try {
+    await AdminFirebaseApp.ensureInitialized();
+  } catch (error) {
+    // Not fatal to the parent/child flow, which uses the default app — but the
+    // admin portal cannot work, so say so rather than failing later with a
+    // permission error that looks like a Firestore rules problem.
+    debugPrint('=' * 72);
+    debugPrint('The admin Firebase app did not start, so the admin portal');
+    debugPrint('will not be able to read or write anything.');
+    debugPrint('Reason: $error');
     debugPrint('=' * 72);
   }
 }

@@ -34,6 +34,7 @@ import 'repositories/onboarding_repository.dart';
 import 'repositories/parental_lock_repository.dart';
 import 'repositories/parent_report_repository.dart';
 import 'repositories/progress_repository.dart';
+import 'services/firebase/admin_firebase_app.dart';
 import 'services/firebase/firebase_auth_service.dart';
 import 'services/firebase/firestore_child_profile_remote_data_source.dart';
 import 'services/firebase/firestore_content_remote_data_source.dart';
@@ -122,17 +123,23 @@ final KoalaGuideRemoteDataSource _koalaGuideRemoteDataSource = _firebaseEnabled
 final _progressRemoteDataSource = _firebaseEnabled
     ? FirestoreProgressRemoteDataSource()
     : InMemoryProgressRemoteDataSource();
+// Admin work runs on the secondary app, never the default one. See
+// [AdminFirebaseApp]: the admin is signed in there and nowhere else, so a
+// query on the default instance is denied by the rules however correct they
+// are, and however successful the admin login was.
 final MediaStorageDataSource _mediaStorageDataSource = _firebaseEnabled
-    ? FirebaseMediaStorageDataSource()
+    ? FirebaseMediaStorageDataSource(storage: AdminFirebaseApp.storage)
     : InMemoryMediaStorageDataSource();
 final AdminContentRepository _baseAdminContentRepository = _firebaseEnabled
-    ? FirestoreAdminContentRepository()
+    ? FirestoreAdminContentRepository(firestore: AdminFirebaseApp.firestore)
     : InMemoryAdminContentRepository(
         contentRemoteDataSource: _inMemoryContentRemoteDataSource,
       );
 final AdminKoalaGuideRepository _baseAdminKoalaGuideRepository =
     _firebaseEnabled
-        ? FirestoreAdminKoalaGuideRepository()
+        ? FirestoreAdminKoalaGuideRepository(
+            firestore: AdminFirebaseApp.firestore,
+          )
         : InMemoryAdminKoalaGuideRepository(
             remoteDataSource: _inMemoryKoalaGuideRemoteDataSource,
           );
@@ -154,7 +161,7 @@ final _adminAuthorizationRepository = AdminSessionAuthorizationRepository(
 final AdminStatsRepository _adminStatsRepository =
     AuthorizedAdminStatsRepository(
   delegate: _firebaseEnabled
-      ? FirestoreAdminStatsRepository()
+      ? FirestoreAdminStatsRepository(firestore: AdminFirebaseApp.firestore)
       : LocalAdminStatsRepository(
           childProfileDao: _childProfileDao,
           progressDao: _progressDao,
@@ -177,6 +184,7 @@ final AdminKoalaGuideRepository _adminKoalaGuideRepository =
 );
 final MediaAssetRepository _baseMediaAssetRepository = _firebaseEnabled
     ? FirestoreMediaAssetRepository(
+        firestore: AdminFirebaseApp.firestore,
         storageDataSource: _mediaStorageDataSource,
       )
     : InMemoryMediaAssetRepository(

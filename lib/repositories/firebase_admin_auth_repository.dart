@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import '../models/admin_user.dart';
+import '../services/firebase/admin_firebase_app.dart';
 import '../services/firebase/admin_user_firestore_service.dart';
 import 'admin_auth_repository.dart';
 
@@ -18,33 +19,15 @@ import 'admin_auth_repository.dart';
 /// [AdminUserFirestoreService] for the schema and
 /// `docs/FIREBASE_ADMIN_SETUP.md` for the console steps.
 class FirebaseAdminAuthRepository implements AdminAuthRepository {
-  FirebaseAdminAuthRepository({
-    String adminAppName = 'littleLearnersAdmin',
-    bool allowLegacyParentRole = true,
-  })  : _adminAppName = adminAppName,
-        _allowLegacyParentRole = allowLegacyParentRole;
+  FirebaseAdminAuthRepository({bool allowLegacyParentRole = true})
+      : _allowLegacyParentRole = allowLegacyParentRole;
 
-  final String _adminAppName;
   final bool _allowLegacyParentRole;
-  FirebaseApp? _adminApp;
 
-  Future<FirebaseApp> _app() async {
-    final existing = _adminApp;
-    if (existing != null) return existing;
-
-    // Reuse the instance across hot restarts instead of re-initializing.
-    FirebaseApp app;
-    try {
-      app = Firebase.app(_adminAppName);
-    } on FirebaseException {
-      app = await Firebase.initializeApp(
-        name: _adminAppName,
-        options: Firebase.app().options,
-      );
-    }
-    _adminApp = app;
-    return app;
-  }
+  // The app is owned by [AdminFirebaseApp] rather than created here, so that
+  // the admin data repositories reach the same one. When they did not, login
+  // succeeded and every admin query afterwards failed with permission-denied.
+  Future<FirebaseApp> _app() => AdminFirebaseApp.ensureInitialized();
 
   Future<FirebaseAuth> _auth() async =>
       FirebaseAuth.instanceFor(app: await _app());
