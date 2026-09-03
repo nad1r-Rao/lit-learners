@@ -33,6 +33,7 @@ import '../../views/reward/celebration_page.dart';
 import '../../views/splash/splash_page.dart';
 import '../../views/video/video_learning_page.dart';
 import '../../views/video/video_player_page.dart';
+import '../../widgets/play/play_route.dart';
 import 'route_names.dart';
 
 class CelebrationArgs {
@@ -118,7 +119,7 @@ class AppRouter {
     // with a matching route type: `Navigator.pushNamed<T>` casts what this
     // returns to `Route<T>`, and a `Route<void>` fails that cast.
     if (settings.name == RouteNames.parentalLock) {
-      return MaterialPageRoute<bool>(
+      return PlayPageRoute<bool>(
         settings: settings,
         builder: (_) => ParentalLockPage(
           args: settings.arguments as ParentalLockArgs? ??
@@ -127,7 +128,7 @@ class AppRouter {
       );
     }
     if (settings.name == RouteNames.parentMarking) {
-      return MaterialPageRoute<ParentMark>(
+      return PlayPageRoute<ParentMark>(
         settings: settings,
         builder: (_) => ParentMarkingPage(
           args: settings.arguments! as ParentMarkingArgs,
@@ -135,7 +136,7 @@ class AppRouter {
       );
     }
 
-    return MaterialPageRoute<void>(
+    return PlayPageRoute<void>(
       settings: settings,
       builder: (_) => switch (settings.name) {
         RouteNames.splash => const SplashPage(),
