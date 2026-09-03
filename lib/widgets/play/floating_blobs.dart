@@ -5,29 +5,39 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import 'play_motion.dart';
 
-/// Soft drifting shapes behind a child screen.
+/// Soft colour behind a child screen.
 ///
-/// The app's background is currently a flat `AppColors.cloud` — correct for a
-/// settings page, dead for a toddler. This puts slow, low-contrast colour
-/// behind the content so the screen feels alive without anything competing
-/// with the thing a child is meant to touch.
+/// The app's background is a flat `AppColors.cloud` — correct for a settings
+/// page, dead for a toddler. This puts a tinted gradient and low-contrast
+/// blobs behind the content so the screen has depth and warmth.
 ///
-/// Deliberately low opacity and very slow. It should never be the first thing
-/// noticed.
+/// **[drift] is off by default, deliberately.** A background that animates
+/// forever repaints on every frame for the whole life of a screen, which is a
+/// real cost on the budget Android hardware this ships to, and it earns very
+/// little: what makes the screen feel playful is the colour and the things
+/// that respond to a touch, not scenery that moves on its own. It also makes
+/// `pumpAndSettle` hang, so every widget test on a drifting screen times out.
+///
+/// Turn it on for a screen that is otherwise still and wants ambience. Do not
+/// turn it on everywhere.
 class FloatingBlobs extends StatefulWidget {
   const FloatingBlobs({
     super.key,
     required this.child,
     this.accent,
     this.blobs = 5,
+    this.drift = false,
   });
 
   final Widget child;
 
-  /// Tints the drift toward a module's colour world.
+  /// Tints the background toward a module's colour world.
   final Color? accent;
 
   final int blobs;
+
+  /// Slowly move the blobs. See the note above before enabling.
+  final bool drift;
 
   @override
   State<FloatingBlobs> createState() => _FloatingBlobsState();
@@ -35,14 +45,22 @@ class FloatingBlobs extends StatefulWidget {
 
 class _FloatingBlobsState extends State<FloatingBlobs>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 26),
-  )..repeat();
+  AnimationController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.drift) {
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 26),
+      )..repeat();
+    }
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -70,24 +88,35 @@ class _FloatingBlobsState extends State<FloatingBlobs>
       ),
     );
 
+    final controller = _controller;
+    final animate = controller != null && !PlayMotion.reduced(context);
+
     return Stack(
       fit: StackFit.expand,
       children: [
         background,
-        if (!PlayMotion.reduced(context))
-          RepaintBoundary(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) => CustomPaint(
-                painter: _BlobPainter(
-                  t: _controller.value,
-                  count: widget.blobs,
-                  palette: palette,
+        RepaintBoundary(
+          child: animate
+              ? AnimatedBuilder(
+                  animation: controller,
+                  builder: (context, _) => CustomPaint(
+                    painter: _BlobPainter(
+                      t: controller.value,
+                      count: widget.blobs,
+                      palette: palette,
+                    ),
+                    size: Size.infinite,
+                  ),
+                )
+              : CustomPaint(
+                  painter: _BlobPainter(
+                    t: 0,
+                    count: widget.blobs,
+                    palette: palette,
+                  ),
+                  size: Size.infinite,
                 ),
-                size: Size.infinite,
-              ),
-            ),
-          ),
+        ),
         widget.child,
       ],
     );
