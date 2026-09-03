@@ -11,6 +11,7 @@ import '../../viewmodels/learning_viewmodel.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../widgets/child_action_bar.dart';
 import '../../widgets/child_avatar.dart';
+import '../../widgets/play/play.dart';
 import '../../widgets/parent_area_button.dart';
 
 /// The screen a signed-in parent lands on: nothing but the learners' faces and
@@ -49,11 +50,11 @@ class _ChildSelectionPageState extends State<ChildSelectionPage> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.cloud,
       bottomNavigationBar: ChildActionBar(
         actions: [ParentAreaButton(onPressed: () => _openParentArea(context))],
       ),
-      body: SafeArea(
+      body: PlayGround(
+        color: PlayColors.grape,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
@@ -122,17 +123,14 @@ class _SelectionHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.grape, AppColors.violet],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
+        color: PlayColors.card,
+        borderRadius: BorderRadius.circular(PlayMotion.radiusLarge),
+        border: Border.all(color: Colors.white, width: 4),
         boxShadow: [
           BoxShadow(
-            color: AppColors.grape.withValues(alpha: 0.28),
-            blurRadius: 22,
-            offset: const Offset(0, 12),
+            color: PlayColors.ink.withValues(alpha: 0.22),
+            offset: const Offset(0, 7),
+            blurRadius: 0,
           ),
         ],
       ),
@@ -141,24 +139,27 @@ class _SelectionHero extends StatelessWidget {
         children: [
           Image.asset(
             'assets/images/koala/koala_guide_portrait.png',
-            height: 46,
+            height: 72,
             fit: BoxFit.contain,
           ),
           const SizedBox(height: 12),
-          Text(
+          const Text(
             'Who is learning today?',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
+            style: TextStyle(
+              fontFamily: 'Fredoka',
+              color: PlayColors.ink,
+              fontSize: 30,
+              height: 1.1,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
             'Tap your picture to start.',
             style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              color: PlayColors.grape,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -214,22 +215,28 @@ class _LearnerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Start learning as ${profile.name}',
-      child: Material(
-        color: AppColors.panel,
-        borderRadius: BorderRadius.circular(26),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(26),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+    // Each child gets their own bright colour, so a two-year-old picks their
+    // tile by colour long before they can read their own name.
+    final tint = PlayColors.byIndex(profile.id.hashCode);
+
+    return Squishy(
+      semanticLabel: 'Start learning as ${profile.name}',
+      onTap: onTap,
+      child: Builder(
+        builder: (context) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(
-                color: AppColors.lilac.withValues(alpha: 0.6),
-              ),
+              color: tint,
+              borderRadius: BorderRadius.circular(PlayMotion.radiusLarge),
+              border: Border.all(color: Colors.white, width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: PlayColors.ink.withValues(alpha: 0.22),
+                  offset: const Offset(0, 6),
+                  blurRadius: 0,
+                ),
+              ],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -239,8 +246,8 @@ class _LearnerCard extends StatelessWidget {
                     child: ChildAvatar(
                       name: profile.name,
                       avatarValue: profile.avatarAsset,
-                      radius: 44,
-                      borderColor: AppColors.honey,
+                      radius: 52,
+                      borderColor: Colors.white,
                     ),
                   ),
                 ),
@@ -251,15 +258,16 @@ class _LearnerCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
+                    fontFamily: 'Fredoka',
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

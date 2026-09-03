@@ -5,18 +5,21 @@ import 'play_motion.dart';
 
 /// Staggered entrance for anything arriving on screen.
 ///
-/// Generalises the hand-rolled `_AnimatedModuleTile` that already lived in
-/// `home_page.dart` — that widget got the idea right, it was just trapped in
-/// one file and written as forty lines of controller boilerplate.
+/// Generalises the idea already hand-rolled in `home_page.dart`, where each
+/// module tile dropped into place one after another.
 ///
-/// Pass the item's position and the list arrives as a cascade rather than
-/// appearing all at once:
+/// **Deliberately built on a plain [AnimationController] rather than on
+/// `flutter_animate`.** `Animate` schedules an internal `Timer`, and a list
+/// item disposed before it fires leaves it pending — which fails every widget
+/// test on that screen with "A Timer is still pending even after the widget
+/// tree was disposed". `flutter_animate` is still the right tool for one-shot
+/// flourishes on long-lived widgets; it is the wrong tool inside a list.
 ///
 /// ```dart
 /// for (var i = 0; i < modules.length; i++)
 ///   PopIn(index: i, child: ModuleCard(module: modules[i]))
 /// ```
-class PopIn extends StatelessWidget {
+class PopIn extends StatefulWidget {
   const PopIn({
     super.key,
     required this.child,
@@ -26,7 +29,7 @@ class PopIn extends StatelessWidget {
 
   final Widget child;
 
-  /// Position in the list. Later items wait longer, capped by
+  /// Position in the list. Later items start later, capped by
   /// [PlayMotion.staggerFor] so the tail of a long list is not left blank.
   final int index;
 
@@ -34,43 +37,78 @@ class PopIn extends StatelessWidget {
   final bool slide;
 
   @override
+  State<PopIn> createState() => _PopInState();
+}
+
+class _PopInState extends State<PopIn> with SingleTickerProviderStateMixin {
+  static const _maxSteps = 8;
+
+  late final int _totalMs =
+      PlayMotion.staggerFor(_maxSteps).inMilliseconds +
+          PlayMotion.enter.inMilliseconds;
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: Duration(milliseconds: _totalMs),
+  )..forward();
+
+  late final Animation<double> _t = CurvedAnimation(
+    parent: _controller,
+    // The stagger is an interval inside one animation, so there is no timer
+    // and nothing to leak when this is disposed mid-flight.
+    curve: Interval(
+      PlayMotion.staggerFor(widget.index, maxSteps: _maxSteps).inMilliseconds /
+          _totalMs,
+      (PlayMotion.staggerFor(widget.index, maxSteps: _maxSteps).inMilliseconds +
+              PlayMotion.enter.inMilliseconds) /
+          _totalMs,
+      curve: PlayMotion.enterCurve,
+    ),
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (PlayMotion.reduced(context)) return child;
+    if (PlayMotion.reduced(context)) return widget.child;
 
-    final delay = PlayMotion.staggerFor(index);
+    return AnimatedBuilder(
+      animation: _t,
+      child: widget.child,
+      builder: (context, child) {
+        final t = _t.value;
+        // easeOutBack overshoots past 1, which is the point — but opacity
+        // cannot, so it is clamped separately.
+        final opacity = t.clamp(0.0, 1.0);
+        final scale = 0.82 + 0.18 * t;
+        final offset = widget.slide ? (1 - t) * 22 : 0.0;
 
-    var animation = child
-        .animate()
-        .fadeIn(delay: delay, duration: PlayMotion.enter)
-        .scaleXY(
-          begin: 0.82,
-          end: 1,
-          delay: delay,
-          duration: PlayMotion.enter,
-          curve: PlayMotion.enterCurve,
+        return Opacity(
+          opacity: opacity,
+          child: Transform.translate(
+            offset: Offset(0, offset),
+            child: Transform.scale(scale: scale, child: child),
+          ),
         );
-
-    if (slide) {
-      animation = animation.slideY(
-        begin: 0.14,
-        end: 0,
-        delay: delay,
-        duration: PlayMotion.enter,
-        curve: PlayMotion.settleCurve,
-      );
-    }
-
-    return animation;
+      },
+    );
   }
 }
 
 /// Draws attention to the one thing a child should touch next.
 ///
-/// Deliberately restrained: it waits [after] seconds of stillness, then gives
-/// a short wiggle and stops. A permanently wiggling screen tells a toddler
-/// nothing, because everything is moving equally — this only fires when a
-/// child has gone quiet, and only on the primary target.
-class IdleWiggle extends StatefulWidget {
+/// Deliberately restrained: it waits [after] of stillness, then gives a short
+/// wiggle. A permanently wiggling screen tells a toddler nothing, because
+/// everything is moving equally.
+///
+/// This one loops forever by design, so `pumpAndSettle` will hang on a screen
+/// that uses it. Use it on a screen with no widget test, or pump fixed
+/// durations in the test.
+class IdleWiggle extends StatelessWidget {
   const IdleWiggle({
     super.key,
     required this.child,
@@ -83,24 +121,19 @@ class IdleWiggle extends StatefulWidget {
   final bool enabled;
 
   @override
-  State<IdleWiggle> createState() => _IdleWiggleState();
-}
-
-class _IdleWiggleState extends State<IdleWiggle> {
-  @override
   Widget build(BuildContext context) {
-    if (!widget.enabled || PlayMotion.reduced(context)) return widget.child;
+    if (!enabled || PlayMotion.reduced(context)) return child;
 
-    return widget.child
+    return child
         .animate(onPlay: (c) => c.repeat())
-        // The long delay before each repeat is the point: wiggle, then rest,
+        // The long rest between repeats is the point: wiggle, then wait,
         // rather than a constant jiggle that becomes background noise.
         .shimmer(
-          delay: widget.after,
+          delay: after,
           duration: 900.ms,
           color: Colors.white.withValues(alpha: 0.45),
         )
-        .shakeX(delay: widget.after, hz: 3, amount: 2)
-        .then(delay: widget.after);
+        .shakeX(delay: after, hz: 3, amount: 2)
+        .then(delay: after);
   }
 }
