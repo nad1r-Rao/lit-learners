@@ -28,9 +28,10 @@ class HomePage extends StatelessWidget {
     if (child == null) return const _NoProfileChosen();
 
     return Scaffold(
-      // Drifting colour behind the grid. A flat background is right for a
-      // settings page and dead for a toddler.
-      body: FloatingBlobs(
+      // The screen is a colour, not a white page. See PlayGround.
+      body: PlayGround(
+        color: PlayColors.blueberry,
+        safeArea: false,
         child: SafeArea(
           bottom: false,
           // A Column rather than a ListView: the hero and the heading stay put
@@ -118,17 +119,14 @@ class _ChildHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.violet, AppColors.plum, AppColors.rose],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: PlayColors.card,
         borderRadius: BorderRadius.circular(PlayMotion.radiusLarge),
+        border: Border.all(color: Colors.white, width: 4),
         boxShadow: [
           BoxShadow(
-            color: AppColors.grape.withValues(alpha: 0.28),
-            blurRadius: 22,
-            offset: const Offset(0, 12),
+            color: PlayColors.ink.withValues(alpha: 0.20),
+            offset: const Offset(0, 7),
+            blurRadius: 0,
           ),
         ],
       ),
@@ -140,7 +138,7 @@ class _ChildHero extends StatelessWidget {
                 name: child.name,
                 avatarValue: child.avatarAsset,
                 radius: 34,
-                borderColor: AppColors.honey,
+                borderColor: PlayColors.sunshine,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -153,8 +151,8 @@ class _ChildHero extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: 'Fredoka',
-                        color: Colors.white,
-                        fontSize: 28,
+                        color: PlayColors.ink,
+                        fontSize: 30,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -162,9 +160,9 @@ class _ChildHero extends StatelessWidget {
                     const Text(
                       'What shall we play today?',
                       style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        color: PlayColors.grape,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -178,7 +176,7 @@ class _ChildHero extends StatelessWidget {
               Expanded(
                 child: _HeroStat(
                   icon: Icons.star_rounded,
-                  iconColor: AppColors.honey,
+                  iconColor: PlayColors.tangerine,
                   value: '$starsEarned',
                   label: starsEarned == 1 ? 'star' : 'stars',
                 ),
@@ -187,7 +185,7 @@ class _ChildHero extends StatelessWidget {
               Expanded(
                 child: _HeroStat(
                   icon: Icons.check_circle_rounded,
-                  iconColor: AppColors.lime,
+                  iconColor: PlayColors.grass,
                   value: '$levelsCompleted',
                   label: levelsCompleted == 1 ? 'level done' : 'levels done',
                 ),
@@ -218,13 +216,13 @@ class _HeroStat extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+        color: iconColor.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: iconColor, width: 2.5),
       ),
       child: Row(
         children: [
-          Icon(icon, color: iconColor, size: 22),
+          Icon(icon, color: iconColor, size: 28),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -233,20 +231,21 @@ class _HeroStat extends StatelessWidget {
                 Text(
                   value,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
+                    fontFamily: 'Fredoka',
+                    color: PlayColors.ink,
+                    fontSize: 24,
                     height: 1.1,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                  style: TextStyle(
+                    color: PlayColors.ink.withValues(alpha: 0.62),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -276,12 +275,14 @@ class _ChildActionBar extends StatelessWidget {
       actions: [
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.violet,
-            side: const BorderSide(color: AppColors.lilac, width: 1.6),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            foregroundColor: PlayColors.grape,
+            side: const BorderSide(color: PlayColors.grape, width: 2.5),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            minimumSize: const Size(0, PlayMotion.minTouchTarget),
             textStyle: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+              fontFamily: 'Fredoka',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
           onPressed: onSwitchChild,

@@ -4,11 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/routing/route_names.dart';
 import '../../core/utils/learning_text_direction.dart';
-import '../../core/utils/module_visuals.dart';
 import '../../models/koala_guide_message.dart';
 import '../../models/learning_level.dart';
 import '../../models/quiz_question.dart';
@@ -105,7 +103,7 @@ class _QuizBodyState extends State<_QuizBody> {
     super.dispose();
   }
 
-  Color get _accent => ModuleVisuals.colorForModuleId(widget.level.moduleId);
+  Color get _accent => PlayColors.forModuleId(widget.level.moduleId);
 
   void _answer(QuizViewModel quiz, int index) {
     if (quiz.answered) return;
@@ -139,8 +137,9 @@ class _QuizBodyState extends State<_QuizBody> {
     final accent = _accent;
 
     return Scaffold(
-      body: FloatingBlobs(
-        accent: accent,
+      body: PlayGround(
+        color: accent,
+        safeArea: false,
         child: SafeArea(
           child: Stack(
             children: [
@@ -234,7 +233,7 @@ class _QuizBodyState extends State<_QuizBody> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: AppColors.panel,
+          backgroundColor: PlayColors.card,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(PlayMotion.radius),
           ),
@@ -242,13 +241,13 @@ class _QuizBodyState extends State<_QuizBody> {
             width: 84,
             height: 84,
             decoration: BoxDecoration(
-              color: AppColors.honey.withValues(alpha: 0.18),
+              color: PlayColors.sunshine.withValues(alpha: 0.18),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.refresh_rounded,
               size: 46,
-              color: AppColors.honey,
+              color: PlayColors.sunshine,
             ),
           ),
           title: const Text(
@@ -265,7 +264,7 @@ class _QuizBodyState extends State<_QuizBody> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
-              color: AppColors.ink.withValues(alpha: 0.7),
+              color: PlayColors.ink.withValues(alpha: 0.7),
             ),
           ),
           actionsAlignment: MainAxisAlignment.center,
@@ -277,7 +276,7 @@ class _QuizBodyState extends State<_QuizBody> {
                 padding: const EdgeInsets.symmetric(horizontal: 30),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.honey,
+                  color: PlayColors.sunshine,
                   borderRadius: BorderRadius.circular(PlayMotion.radius),
                 ),
                 child: const Text(
@@ -286,7 +285,7 @@ class _QuizBodyState extends State<_QuizBody> {
                     fontFamily: 'Fredoka',
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.ink,
+                    color: PlayColors.ink,
                   ),
                 ),
               ),
@@ -323,14 +322,11 @@ class _QuizHeader extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.panel,
+              color: PlayColors.card,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: accent.withValues(alpha: 0.35),
-                width: 3,
-              ),
+              border: Border.all(color: Colors.white, width: 3),
             ),
-            child: Icon(Icons.arrow_back_rounded, color: accent, size: 26),
+            child: Icon(Icons.arrow_back_rounded, color: accent, size: 30),
           ),
         ),
         const SizedBox(width: 12),
@@ -347,8 +343,8 @@ class _QuizHeader extends StatelessWidget {
                     height: current ? 16 : 12,
                     decoration: BoxDecoration(
                       color: done || current
-                          ? accent
-                          : accent.withValues(alpha: 0.22),
+                          ? PlayColors.sunshine
+                          : Colors.white.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(999),
                       border: current
                           ? Border.all(color: Colors.white, width: 2)
@@ -380,21 +376,22 @@ class _ParentMarkChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.mint,
+        color: PlayColors.grass.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.leaf.withValues(alpha: 0.35)),
+        border: Border.all(color: PlayColors.grass.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.how_to_reg_rounded, size: 16, color: AppColors.leaf),
+          const Icon(Icons.how_to_reg_rounded,
+              size: 16, color: PlayColors.grass),
           const SizedBox(width: 4),
           Text(
             '$mark%',
             style: const TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 13,
-              color: AppColors.ink,
+              color: PlayColors.ink,
             ),
           ),
         ],
@@ -419,8 +416,10 @@ class _QuestionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopIn(
       child: JellyCard(
-        color: accent,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        color: Colors.white,
+        filled: true,
+        borderWidth: 4,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
         child: Column(
           children: [
             Directionality(
@@ -431,10 +430,10 @@ class _QuestionCard extends StatelessWidget {
                 style: LearningTextDirection.styleFor(
                   const TextStyle(
                     fontFamily: 'Fredoka',
-                    fontSize: 26,
+                    fontSize: 30,
                     height: 1.25,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.ink,
+                    color: PlayColors.ink,
                   ),
                   textDirection,
                 ),
@@ -446,7 +445,7 @@ class _QuestionCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 22),
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
+                  color: accent.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(PlayMotion.radius),
                 ),
                 child: Directionality(
@@ -457,9 +456,9 @@ class _QuestionCard extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: LearningTextDirection.styleForText(
                       const TextStyle(
-                        fontSize: 34,
+                        fontSize: 44,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.ink,
+                        color: PlayColors.ink,
                       ),
                       question.visualLabel!,
                     ),
@@ -545,9 +544,9 @@ class _AnswerCard extends StatelessWidget {
     final wrongChoice = answered && isChosen && !isCorrect;
 
     final color = revealed
-        ? AppColors.leaf
+        ? PlayColors.grass
         : wrongChoice
-            ? AppColors.honey
+            ? PlayColors.sunshine
             : accent;
 
     Widget card = Squishy(
@@ -558,8 +557,9 @@ class _AnswerCard extends StatelessWidget {
         opacity: answered && !isCorrect && !isChosen ? 0.45 : 1,
         child: JellyCard(
           color: color,
-          filled: revealed,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          filled: true,
+          borderWidth: 4,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
           child: Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -568,7 +568,7 @@ class _AnswerCard extends StatelessWidget {
                   const Icon(
                     Icons.check_circle_rounded,
                     color: Colors.white,
-                    size: 30,
+                    size: 38,
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -584,10 +584,12 @@ class _AnswerCard extends StatelessWidget {
                         style: LearningTextDirection.styleForText(
                           TextStyle(
                             fontFamily: 'Fredoka',
-                            fontSize: 26,
+                            fontSize: 32,
                             height: 1.2,
                             fontWeight: FontWeight.w600,
-                            color: revealed ? Colors.white : AppColors.ink,
+                            color: revealed || wrongChoice
+                                ? Colors.white
+                                : PlayColors.ink,
                           ),
                           label,
                         ),
@@ -605,9 +607,7 @@ class _AnswerCard extends StatelessWidget {
     if (PlayMotion.reduced(context)) return card;
 
     if (revealed) {
-      card = card
-          .animate()
-          .scaleXY(
+      card = card.animate().scaleXY(
             begin: 1,
             end: 1.06,
             duration: PlayMotion.pop,

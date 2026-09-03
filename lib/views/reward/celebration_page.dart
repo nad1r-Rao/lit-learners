@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/routing/route_names.dart';
-import '../../core/utils/module_visuals.dart';
 import '../../models/koala_guide_message.dart';
 import '../../widgets/koala_guide.dart';
 import '../../widgets/play/play.dart';
@@ -29,33 +27,19 @@ class CelebrationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = ModuleVisuals.colorForModuleId(args.moduleId);
+    final accent = PlayColors.forModuleId(args.moduleId);
 
     return Scaffold(
       backgroundColor: accent,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Full-bleed colour instead of a white page with a card on it.
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color.alphaBlend(
-                    Colors.white.withValues(alpha: 0.22),
-                    accent,
-                  ),
-                  accent,
-                  Color.alphaBlend(
-                    Colors.black.withValues(alpha: 0.12),
-                    accent,
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Full-bleed flat colour with cut-out shapes, no gradient.
+          PlayGround(
+              color: accent,
+              safeArea: false,
+              shapes: 16,
+              child: const SizedBox.expand()),
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -71,7 +55,7 @@ class CelebrationPage extends StatelessWidget {
                       children: [
                         _Banner(starsEarned: args.starsEarned),
                         const SizedBox(height: 18),
-                        PoppingStars(count: args.starsEarned, size: 68),
+                        PoppingStars(count: args.starsEarned, size: 82),
                         const SizedBox(height: 22),
                         _LevelPlaque(
                           levelTitle: args.levelTitle,
@@ -91,7 +75,7 @@ class CelebrationPage extends StatelessWidget {
           ),
           // Above everything, ignoring pointers, so it never blocks the
           // buttons a child is trying to reach.
-          const ConfettiBurst(),
+          const ConfettiBurst(pieces: 60),
         ],
       ),
     );
@@ -123,7 +107,7 @@ class _Banner extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: 'Fredoka',
-            fontSize: 44,
+            fontSize: 52,
             height: 1.05,
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -162,8 +146,8 @@ class _Trophy extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final badge = Container(
-      width: 118,
-      height: 118,
+      width: 140,
+      height: 140,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.22),
         shape: BoxShape.circle,
@@ -176,17 +160,15 @@ class _Trophy extends StatelessWidget {
         starsEarned >= 3
             ? Icons.emoji_events_rounded
             : Icons.celebration_rounded,
-        size: 66,
-        color: AppColors.honey,
+        size: 80,
+        color: PlayColors.sunshine,
       ),
     );
 
     if (PlayMotion.reduced(context)) return badge;
 
     // A slow rock, not a spin. Enough to feel alive while a child looks at it.
-    return badge
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .rotate(
+    return badge.animate(onPlay: (c) => c.repeat(reverse: true)).rotate(
           begin: -0.03,
           end: 0.03,
           duration: 1800.ms,
@@ -212,8 +194,10 @@ class _LevelPlaque extends StatelessWidget {
     return PopIn(
       index: 3,
       child: JellyCard(
-        color: accent,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        color: Colors.white,
+        filled: true,
+        borderWidth: 4,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         child: Column(
           children: [
             Text(
@@ -223,10 +207,10 @@ class _LevelPlaque extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontFamily: 'Fredoka',
-                fontSize: 22,
+                fontSize: 26,
                 height: 1.15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.ink,
+                color: PlayColors.ink,
               ),
             ),
             if (score != null) ...[
@@ -238,7 +222,7 @@ class _LevelPlaque extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.ink.withValues(alpha: 0.55),
+                  color: PlayColors.ink.withValues(alpha: 0.55),
                 ),
               ),
             ],
@@ -289,7 +273,7 @@ class _Actions extends StatelessWidget {
                 height: PlayMotion.primaryTouchTarget,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.honey,
+                  color: PlayColors.sunshine,
                   borderRadius: BorderRadius.circular(PlayMotion.radiusLarge),
                   boxShadow: const [
                     BoxShadow(
@@ -305,16 +289,16 @@ class _Actions extends StatelessWidget {
                     Icon(
                       Icons.play_arrow_rounded,
                       size: 40,
-                      color: AppColors.ink,
+                      color: PlayColors.ink,
                     ),
                     SizedBox(width: 8),
                     Text(
                       'Play more',
                       style: TextStyle(
                         fontFamily: 'Fredoka',
-                        fontSize: 26,
+                        fontSize: 30,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
+                        color: PlayColors.ink,
                       ),
                     ),
                   ],
