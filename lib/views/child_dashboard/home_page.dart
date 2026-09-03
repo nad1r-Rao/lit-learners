@@ -10,10 +10,11 @@ import '../../models/child_profile.dart';
 import '../../models/learning_module.dart';
 import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
-import '../../widgets/child_avatar.dart';
 import '../../widgets/child_action_bar.dart';
+import '../../widgets/child_avatar.dart';
 import '../../widgets/module_card.dart';
 import '../../widgets/parent_area_button.dart';
+import '../../widgets/play/play.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -27,42 +28,46 @@ class HomePage extends StatelessWidget {
     if (child == null) return const _NoProfileChosen();
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        // A Column rather than a ListView: the hero and the heading stay put
-        // while only the modules move, so the child never loses sight of whose
-        // dashboard this is or what the grid below is for.
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: _ChildHero(
-                child: child,
-                starsEarned: learning.totalStarsEarned,
-                levelsCompleted: learning.completedLevelCount,
+      // Drifting colour behind the grid. A flat background is right for a
+      // settings page and dead for a toddler.
+      body: FloatingBlobs(
+        child: SafeArea(
+          bottom: false,
+          // A Column rather than a ListView: the hero and the heading stay put
+          // while only the modules move, so the child never loses sight of whose
+          // dashboard this is or what the grid below is for.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: _ChildHero(
+                  child: child,
+                  starsEarned: learning.totalStarsEarned,
+                  levelsCompleted: learning.completedLevelCount,
+                ),
               ),
-            ),
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _ModuleSectionHeading(count: learning.modules.length),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: learning.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : learning.modules.isEmpty
-                      ? const SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(16, 4, 16, 24),
-                          child: _NoModulesYet(),
-                        )
-                      : _ModuleGrid(
-                          modules: learning.modules,
-                          onOpen: (module) => _openModule(context, module),
-                        ),
-            ),
-          ],
+              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _ModuleSectionHeading(count: learning.modules.length),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: learning.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : learning.modules.isEmpty
+                        ? const SingleChildScrollView(
+                            padding: EdgeInsets.fromLTRB(16, 4, 16, 24),
+                            child: _NoModulesYet(),
+                          )
+                        : _ModuleGrid(
+                            modules: learning.modules,
+                            onOpen: (module) => _openModule(context, module),
+                          ),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _ChildActionBar(
@@ -114,11 +119,11 @@ class _ChildHero extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.grape, AppColors.violet],
+          colors: [AppColors.violet, AppColors.plum, AppColors.rose],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(PlayMotion.radiusLarge),
         boxShadow: [
           BoxShadow(
             color: AppColors.grape.withValues(alpha: 0.28),
@@ -134,7 +139,7 @@ class _ChildHero extends StatelessWidget {
               ChildAvatar(
                 name: child.name,
                 avatarValue: child.avatarAsset,
-                radius: 27,
+                radius: 34,
                 borderColor: AppColors.honey,
               ),
               const SizedBox(width: 12),
@@ -147,17 +152,18 @@ class _ChildHero extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
+                        fontFamily: 'Fredoka',
                         color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      'Ready for a learning adventure?',
+                      'What shall we play today?',
                       style: TextStyle(
                         color: Colors.white70,
-                        fontSize: 13,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -350,7 +356,8 @@ class _ModuleGridState extends State<_ModuleGrid> {
               scrollController: _scrollController,
               // Everything the tile needs to know where it sits in the scroll
               // without measuring itself: the grid geometry is fixed here.
-              rowTop: padding.top + (index ~/ columnCount) * (tileHeight + spacing),
+              rowTop:
+                  padding.top + (index ~/ columnCount) * (tileHeight + spacing),
               tileHeight: tileHeight,
               viewportHeight: constraints.maxHeight,
               index: index,

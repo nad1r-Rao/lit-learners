@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../core/utils/learning_text_direction.dart';
 import '../core/utils/module_visuals.dart';
 import '../models/learning_module.dart';
+import 'play/play.dart';
 
 class ModuleCard extends StatelessWidget {
   const ModuleCard({
@@ -21,7 +22,9 @@ class ModuleCard extends StatelessWidget {
     final textDirection = LearningTextDirection.forModule(module);
     final titleStyle = LearningTextDirection.styleFor(
       Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w900,
+            fontFamily: 'Fredoka',
+            fontSize: 19,
+            fontWeight: FontWeight.w600,
             height: 1.15,
           ),
       textDirection,
@@ -35,21 +38,33 @@ class ModuleCard extends StatelessWidget {
       textDirection,
     );
 
-    return Semantics(
-      button: true,
-      label: 'Open ${module.title}',
+    // Squishy rather than InkWell: a ripple is a Material affordance a
+    // two-year-old does not read, where the whole card compressing under a
+    // finger is immediately legible as "I did that".
+    return Squishy(
+      semanticLabel: 'Open ${module.title}',
+      onTap: onTap,
       child: Material(
         color: AppColors.panel,
         clipBehavior: Clip.antiAlias,
-        elevation: 3,
-        shadowColor: color.withValues(alpha: 0.34),
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: color.withValues(alpha: 0.22), width: 1.4),
+          borderRadius: BorderRadius.circular(PlayMotion.radius),
+          // A thick coloured edge, not a hairline. The card should read as a
+          // chunky object rather than as a bordered panel.
+          side: BorderSide(color: color.withValues(alpha: 0.55), width: 3),
         ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(PlayMotion.radius),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.32),
+                offset: const Offset(0, 6),
+                blurRadius: 0,
+              ),
+            ],
+          ),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -97,8 +112,8 @@ class ModuleCard extends StatelessWidget {
                           _ModuleIconTile(color: color, module: module),
                           const Spacer(),
                           Container(
-                            width: 26,
-                            height: 26,
+                            width: 32,
+                            height: 32,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.86),
                               shape: BoxShape.circle,
@@ -106,7 +121,7 @@ class ModuleCard extends StatelessWidget {
                             child: Icon(
                               Icons.arrow_forward_rounded,
                               color: color,
-                              size: 16,
+                              size: 20,
                             ),
                           ),
                         ],
@@ -156,8 +171,8 @@ class _ModuleIconTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 52,
-      height: 52,
+      width: 62,
+      height: 62,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -179,7 +194,7 @@ class _ModuleIconTile extends StatelessWidget {
       child: Icon(
         ModuleVisuals.iconFor(module.category),
         color: Colors.white,
-        size: 28,
+        size: 34,
       ),
     );
   }
