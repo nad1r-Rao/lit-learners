@@ -14,6 +14,8 @@ import '../../widgets/child_action_bar.dart';
 import '../../widgets/child_avatar.dart';
 import '../../widgets/module_card.dart';
 import '../../widgets/parent_area_button.dart';
+import '../../services/audio/app_sounds.dart';
+import '../../services/audio/sound_controller.dart';
 import '../../widgets/play/play.dart';
 
 class HomePage extends StatelessWidget {
@@ -311,6 +313,14 @@ class _ModuleGrid extends StatefulWidget {
 
 class _ModuleGridState extends State<_ModuleGrid> {
   final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Reached directly from the celebration screen's Home button, which is
+    // playing a different track by then.
+    AppSound.instance.playMusic(MusicTrack.home);
+  }
 
   /// Cards the grid has already introduced. A tile scrolled far enough out of
   /// view is disposed and rebuilt on the way back, and replaying its arrival

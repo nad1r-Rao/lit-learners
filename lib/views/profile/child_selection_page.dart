@@ -11,6 +11,8 @@ import '../../viewmodels/learning_viewmodel.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../widgets/child_action_bar.dart';
 import '../../widgets/child_avatar.dart';
+import '../../services/audio/app_sounds.dart';
+import '../../services/audio/sound_controller.dart';
 import '../../widgets/play/play.dart';
 import '../../widgets/parent_area_button.dart';
 
@@ -26,6 +28,12 @@ class ChildSelectionPage extends StatefulWidget {
 
 class _ChildSelectionPageState extends State<ChildSelectionPage> {
   String? _loadedParentId;
+
+  @override
+  void initState() {
+    super.initState();
+    AppSound.instance.playMusic(MusicTrack.home);
+  }
 
   @override
   void didChangeDependencies() {

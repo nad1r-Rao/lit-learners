@@ -1,9 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../core/routing/app_router.dart';
 import '../../core/routing/route_names.dart';
 import '../../models/koala_guide_message.dart';
+import '../../services/audio/app_sounds.dart';
+import '../../services/audio/sound_controller.dart';
+import '../../viewmodels/learning_viewmodel.dart';
 import '../../widgets/koala_guide.dart';
 import '../../widgets/play/play.dart';
 
@@ -17,7 +23,7 @@ import '../../widgets/play/play.dart';
 /// design is deliberately over the top: full-bleed module colour, confetti,
 /// stars that arrive one at a time, and one enormous button. The score is kept
 /// but demoted — it is information for a parent, not a reward for a child.
-class CelebrationPage extends StatelessWidget {
+class CelebrationPage extends StatefulWidget {
   const CelebrationPage({
     required this.args,
     super.key,
@@ -26,7 +32,72 @@ class CelebrationPage extends StatelessWidget {
   final CelebrationArgs args;
 
   @override
+  State<CelebrationPage> createState() => _CelebrationPageState();
+}
+
+class _CelebrationPageState extends State<CelebrationPage> {
+  final _starTimers = <Timer>[];
+
+  @override
+  void initState() {
+    super.initState();
+    AppSound.instance.playMusic(MusicTrack.celebration);
+    _scheduleStarPops();
+    _scheduleStinger();
+  }
+
+  /// One pop per star, on the same 260ms beat `PoppingStars` uses.
+  ///
+  /// Scheduled here rather than inside that widget because this is where the
+  /// lifecycle is: a child who taps straight through cancels the timers on the
+  /// way out instead of leaving them pending.
+  void _scheduleStarPops() {
+    for (var index = 0; index < widget.args.starsEarned; index++) {
+      _starTimers.add(
+        Timer(Duration(milliseconds: 180 + 260 * index), () {
+          if (mounted) AppSound.play(Sfx.starPop);
+        }),
+      );
+    }
+  }
+
+  /// After the last star, a note that says what was just opened up: the next
+  /// stop on the map, or the whole subject if that was the last one.
+  ///
+  /// Read after the frame so a screen built without a LearningViewModel — a
+  /// preview, a test — simply gets no stinger rather than an error.
+  void _scheduleStinger() {
+    final after = 180 + 260 * widget.args.starsEarned + 520;
+    _starTimers.add(
+      Timer(Duration(milliseconds: after), () {
+        if (!mounted) return;
+        var finishedModule = false;
+        try {
+          final learning = context.read<LearningViewModel>();
+          final levels = learning.levelsFor(widget.args.moduleId);
+          finishedModule = levels.isNotEmpty &&
+              levels.every((level) => learning.isLevelCompleted(level.id));
+        } on Object {
+          finishedModule = false;
+        }
+        AppSound.play(
+          finishedModule ? Sfx.moduleComplete : Sfx.levelUnlocked,
+        );
+      }),
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final timer in _starTimers) {
+      timer.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final args = widget.args;
     final accent = PlayColors.forModuleId(args.moduleId);
 
     return Scaffold(

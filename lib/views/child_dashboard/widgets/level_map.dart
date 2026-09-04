@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/learning_text_direction.dart';
 import '../../../models/learning_level.dart';
+import '../../../services/audio/app_sounds.dart';
 import '../../../widgets/locked_overlay.dart';
 import '../../../widgets/play/play.dart';
 
@@ -396,10 +397,15 @@ class _MapStop extends StatelessWidget {
       ],
     );
 
+    final blocked = stop.locked && !stop.canDownload;
+
     return Squishy(
       semanticLabel:
           stop.locked ? '${level.title}, locked' : 'Play ${level.title}',
-      onTap: stop.locked && !stop.canDownload ? onLocked : onOpen,
+      onTap: blocked ? onLocked : onOpen,
+      // A stop that will not open says so, rather than chirping like one that
+      // will.
+      sound: blocked ? Sfx.locked : Sfx.tap,
       scale: 0.96,
       child: Stack(
         // The current stop's pointer sits above the disc's own box.
@@ -409,8 +415,7 @@ class _MapStop extends StatelessWidget {
           // Kept from the list this replaced: a locked stop has to say *why*
           // it is locked, and the tooltip is the only place that reason
           // appears without tapping.
-          if (stop.locked && !stop.canDownload)
-            LockedOverlay(reason: stop.lockReason),
+          if (blocked) LockedOverlay(reason: stop.lockReason),
         ],
       ),
     );

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/routing/app_router.dart';
 import '../../viewmodels/parental_lock_viewmodel.dart';
+import '../../services/audio/sound_controller.dart';
 import '../../widgets/play/play.dart';
 
 /// The sum a grown-up has to solve before the parent area opens.
@@ -28,6 +29,7 @@ class _ParentalLockPageState extends State<ParentalLockPage> {
   @override
   void initState() {
     super.initState();
+    AppSound.instance.stopMusic();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ParentalLockViewModel>().loadChallenge();
     });

@@ -13,6 +13,7 @@ import '../../viewmodels/leaderboard_viewmodel.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
 import '../../viewmodels/parent_report_viewmodel.dart';
+import '../../services/audio/sound_controller.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../widgets/child_avatar.dart';
 import '../../widgets/play/play.dart';
@@ -625,6 +626,9 @@ class _ActiveChildDashboardTab extends StatelessWidget {
           const SizedBox(height: 20),
           const PlaySectionLabel('Rewards'),
           _RewardSummaryRow(report: childReport),
+          const SizedBox(height: 20),
+          const PlaySectionLabel('Sound'),
+          const _SoundCard(),
           if (profiles.errorMessage != null) ...[
             const SizedBox(height: 14),
             PlayBanner(message: profiles.errorMessage!),
@@ -1513,6 +1517,170 @@ class _InfoCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The parent's control over what the app is allowed to make noise about.
+///
+/// This lives behind the parental check on purpose. A mute switch on the
+/// child's own screens is a switch a two-year-old will find, and a parent will
+/// then spend an afternoon wondering why the app went quiet.
+class _SoundCard extends StatelessWidget {
+  const _SoundCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final sound = context.watch<SoundController>();
+
+    return PlayPanel(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Squishy(
+            semanticLabel: sound.muted ? 'Turn sound on' : 'Turn sound off',
+            onTap: () => sound.setMuted(!sound.muted),
+            scale: 0.98,
+            child: Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: sound.muted
+                        ? PlayColors.ink.withValues(alpha: 0.12)
+                        : PlayColors.grass,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    sound.muted
+                        ? Icons.volume_off_rounded
+                        : Icons.volume_up_rounded,
+                    color: sound.muted
+                        ? PlayColors.ink.withValues(alpha: 0.5)
+                        : Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        sound.muted ? 'Sound is off' : 'Sound is on',
+                        style: const TextStyle(
+                          fontFamily: 'Fredoka',
+                          fontSize: 19,
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                          color: PlayColors.ink,
+                        ),
+                      ),
+                      Text(
+                        'Music and effects across the whole app.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: PlayColors.ink.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _VolumeRow(
+            icon: Icons.music_note_rounded,
+            label: 'Music',
+            value: sound.musicVolume,
+            enabled: !sound.muted,
+            onChanged: sound.setMusicVolume,
+          ),
+          _VolumeRow(
+            icon: Icons.graphic_eq_rounded,
+            label: 'Effects',
+            value: sound.sfxVolume,
+            enabled: !sound.muted,
+            onChanged: sound.setSfxVolume,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VolumeRow extends StatelessWidget {
+  const _VolumeRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String label;
+  final double value;
+  final bool enabled;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.4,
+      child: Row(
+        children: [
+          Icon(icon, size: 24, color: PlayColors.grape),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 62,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Fredoka',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: PlayColors.ink,
+              ),
+            ),
+          ),
+          Expanded(
+            child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 10,
+                activeTrackColor: PlayColors.grape,
+                inactiveTrackColor: PlayColors.ink.withValues(alpha: 0.12),
+                thumbColor: Colors.white,
+                overlayColor: PlayColors.grape.withValues(alpha: 0.12),
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 13,
+                  elevation: 2,
+                ),
+              ),
+              child: Slider(
+                value: value,
+                onChanged: enabled ? onChanged : null,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 44,
+            child: Text(
+              '${(value * 100).round()}%',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: PlayColors.ink.withValues(alpha: 0.6),
+              ),
             ),
           ),
         ],

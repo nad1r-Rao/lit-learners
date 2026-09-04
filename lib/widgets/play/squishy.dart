@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../services/audio/app_sounds.dart';
+import '../../services/audio/sound_controller.dart';
 import 'play_motion.dart';
 
 /// Makes anything squish when a finger lands on it and spring back when it
@@ -30,6 +32,7 @@ class Squishy extends StatefulWidget {
     this.onLongPress,
     this.scale = PlayMotion.pressedScale,
     this.haptic = true,
+    this.sound = Sfx.tap,
     this.semanticLabel,
   });
 
@@ -40,9 +43,17 @@ class Squishy extends StatefulWidget {
   /// How far it compresses. Lower for big surfaces, higher for small ones.
   final double scale;
 
-  /// Fires a light impact on press. Sound is off the table for now, so touch
-  /// is the only non-visual confirmation a child gets.
+  /// Fires a light impact on press.
   final bool haptic;
+
+  /// What this makes when it is tapped.
+  ///
+  /// Every tappable in the app already passes through [Squishy], which makes
+  /// this the one place the whole app gets a tap sound. Pass a different [Sfx]
+  /// for a control that should say something else, or null for one that
+  /// answers with its own sound a moment later — a quiz card, for instance,
+  /// where a tap chirp on top of the correct-answer chime is just mud.
+  final Sfx? sound;
 
   final String? semanticLabel;
 
@@ -79,12 +90,19 @@ class _SquishyState extends State<Squishy> with SingleTickerProviderStateMixin {
 
   void _handleTap() {
     if (widget.haptic) HapticFeedback.lightImpact();
+    // Unlock before playing, not after. A browser only allows audio inside a
+    // gesture handler, and this is one — so the very first tap makes a sound
+    // instead of being the silent one that buys the rest.
+    AppSound.instance.unlock();
+    final sound = widget.sound;
+    if (sound != null) AppSound.play(sound);
     widget.onTap?.call();
   }
 
   void _handleLongPress() {
     if (widget.onLongPress == null) return;
     if (widget.haptic) HapticFeedback.mediumImpact();
+    AppSound.instance.unlock();
     widget.onLongPress!.call();
   }
 

@@ -14,6 +14,8 @@ import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../viewmodels/quiz_viewmodel.dart';
 import '../../widgets/koala_guide.dart';
+import '../../services/audio/app_sounds.dart';
+import '../../services/audio/sound_controller.dart';
 import '../../widgets/play/play.dart';
 
 class QuizPage extends StatefulWidget {
@@ -109,6 +111,7 @@ class _QuizBodyState extends State<_QuizBody> {
     if (quiz.answered) return;
 
     final correct = quiz.currentQuestion.isCorrect(index);
+    AppSound.play(correct ? Sfx.quizCorrect : Sfx.quizWrong);
     quiz.selectAnswer(index);
     setState(() => _celebratingIndex = correct ? index : null);
 
@@ -551,6 +554,9 @@ class _AnswerCard extends StatelessWidget {
 
     Widget card = Squishy(
       semanticLabel: label,
+      // No tap chirp: the answer replies with its own sound a moment later,
+      // and the two on top of each other is mud.
+      sound: null,
       onTap: answered ? null : () => onAnswer(index),
       child: Opacity(
         // Untouched wrong options recede rather than being marked wrong.

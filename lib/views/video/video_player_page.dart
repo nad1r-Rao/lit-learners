@@ -8,6 +8,7 @@ import '../../core/utils/age_stage_helper.dart';
 import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
 import '../../widgets/play/play.dart';
+import '../../services/audio/sound_controller.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   const VideoPlayerPage({
@@ -28,6 +29,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   void initState() {
     super.initState();
+    // The bed drops to a whisper rather than stopping: a lesson that ends
+    // into silence feels like the app died.
+    AppSound.instance.duck();
     _controller = VideoPlayerController.networkUrl(
       Uri.parse(widget.args.lesson.videoUrl),
     );
@@ -37,6 +41,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   void dispose() {
+    AppSound.instance.unduck();
     _controller.dispose();
     super.dispose();
   }
