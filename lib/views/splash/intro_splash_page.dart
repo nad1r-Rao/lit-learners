@@ -7,11 +7,10 @@ import 'package:lottie/lottie.dart';
 import '../../core/routing/route_names.dart';
 import '../../widgets/play/play.dart';
 
-/// The first three seconds of Little Learners.
+/// The first six seconds of Little Learners.
 ///
-/// A koala skates in from a hill, the name lands letter-block by
-/// letter-block, and a star rolls along a loading track. Then it hands over
-/// to the welcome screen.
+/// A koala skates in, the name lands block by block, and a star rolls along a
+/// loading track. Then it hands over to the welcome screen.
 ///
 /// Everything on it is on one clock, and everything except the Lottie is
 /// drawn rather than animated by widgets — a scrolling road, drifting clouds,
@@ -24,7 +23,7 @@ class IntroSplashPage extends StatefulWidget {
   const IntroSplashPage({super.key});
 
   /// How long a family looks at this before the app moves on.
-  static const hold = Duration(seconds: 3);
+  static const hold = Duration(seconds: 6);
 
   @override
   State<IntroSplashPage> createState() => _IntroSplashPageState();
@@ -38,9 +37,20 @@ class _IntroSplashPageState extends State<IntroSplashPage>
     duration: const Duration(seconds: 4),
   )..repeat();
 
-  /// The one-shot that runs the arrival and the loading bar, straight through
-  /// the three seconds this screen lives for.
+  /// The arrival: the koala skating on, the name landing, the tagline
+  /// popping. Deliberately not tied to [IntroSplashPage.hold] — stretching
+  /// the choreography to fill six seconds would make the entrance sluggish,
+  /// which is the opposite of the point. It lands in well under a second and
+  /// then the scene simply lives.
   late final AnimationController _entrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1500),
+  )..forward();
+
+  /// The loading bar, which does run the full hold. It is the one thing on
+  /// screen making a promise, so it has to keep it: when the star reaches the
+  /// end, the app moves on.
+  late final AnimationController _progress = AnimationController(
     vsync: this,
     duration: IntroSplashPage.hold,
   )..forward();
@@ -59,6 +69,7 @@ class _IntroSplashPageState extends State<IntroSplashPage>
     _handover?.cancel();
     _world.dispose();
     _entrance.dispose();
+    _progress.dispose();
     super.dispose();
   }
 
@@ -109,7 +120,7 @@ class _IntroSplashPageState extends State<IntroSplashPage>
                         ),
                       ),
                       SizedBox(height: compact ? 10 : 18),
-                      _LoadingTrack(entrance: _entrance),
+                      _LoadingTrack(progress: _progress),
                       SizedBox(height: constraints.maxHeight * 0.06),
                     ],
                   );
@@ -367,9 +378,9 @@ class _Tagline extends StatelessWidget {
 /// Tied to the same three seconds the screen lasts, so it is telling the
 /// truth: when the star reaches the end, the app moves on.
 class _LoadingTrack extends StatelessWidget {
-  const _LoadingTrack({required this.entrance});
+  const _LoadingTrack({required this.progress});
 
-  final Animation<double> entrance;
+  final Animation<double> progress;
 
   static const _height = 22.0;
   static const _star = 40.0;
@@ -379,9 +390,9 @@ class _LoadingTrack extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 42),
       child: AnimatedBuilder(
-        animation: entrance,
+        animation: progress,
         builder: (context, _) {
-          final progress = entrance.value.clamp(0.0, 1.0);
+          final filled = progress.value.clamp(0.0, 1.0);
 
           return Column(
             children: [
@@ -411,7 +422,7 @@ class _LoadingTrack extends StatelessWidget {
                           top: (_star - _height) / 2,
                           child: Container(
                             height: _height,
-                            width: (width * progress).clamp(0.0, width),
+                            width: (width * filled).clamp(0.0, width),
                             decoration: BoxDecoration(
                               color: PlayColors.sunshine,
                               borderRadius: BorderRadius.circular(999),
@@ -419,12 +430,12 @@ class _LoadingTrack extends StatelessWidget {
                           ),
                         ),
                         Positioned(
-                          left: (width * progress - _star / 2)
+                          left: (width * filled - _star / 2)
                               .clamp(-_star / 4, width - _star / 2),
                           top: 0,
                           child: Transform.rotate(
                             // Rolls as it travels, like a wheel.
-                            angle: progress * math.pi * 4,
+                            angle: filled * math.pi * 4,
                             child: Container(
                               width: _star,
                               height: _star,
