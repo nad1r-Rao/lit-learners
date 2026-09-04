@@ -26,6 +26,7 @@ export 'play_button.dart';
 export 'play_choice.dart';
 export 'play_field.dart';
 export 'play_colors.dart';
+export 'play_dialog.dart';
 export 'play_ground.dart';
 export 'play_header.dart';
 export 'play_motion.dart';
