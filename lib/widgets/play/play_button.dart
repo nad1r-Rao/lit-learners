@@ -22,6 +22,7 @@ class PlayButton extends StatelessWidget {
     this.textColor,
     this.big = false,
     this.expand = true,
+    this.labelStyle,
   });
 
   final String label;
@@ -34,6 +35,11 @@ class PlayButton extends StatelessWidget {
   final bool big;
 
   final bool expand;
+
+  /// Merged over the button's own style. Needed for scripts the display font
+  /// has no glyphs for, such as Urdu — without it those labels fall back to a
+  /// font that cannot render them.
+  final TextStyle? labelStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +93,7 @@ class PlayButton extends StatelessWidget {
                   fontSize: big ? 26 : 21,
                   fontWeight: FontWeight.w600,
                   color: foreground,
-                ),
+                ).merge(labelStyle),
               ),
             ),
           ],
@@ -123,29 +129,34 @@ class PlayIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Squishy(
-      semanticLabel: semanticLabel,
-      onTap: onPressed,
-      scale: 0.9,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.75),
-            width: 3,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.16),
-              offset: const Offset(0, 4),
-              blurRadius: 0,
+    // Tooltip as well as the semantic label: it is what a grown-up gets on a
+    // long press, and the only way to name an icon that carries no text.
+    return Tooltip(
+      message: semanticLabel,
+      child: Squishy(
+        semanticLabel: semanticLabel,
+        onTap: onPressed,
+        scale: 0.9,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.75),
+              width: 3,
             ),
-          ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                offset: const Offset(0, 4),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          child: Icon(icon, color: iconColor, size: size * 0.46),
         ),
-        child: Icon(icon, color: iconColor, size: size * 0.46),
       ),
     );
   }
