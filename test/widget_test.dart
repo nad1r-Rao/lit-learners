@@ -22,7 +22,11 @@ void main() {
     addTearDown(() => FlutterError.onError = originalOnError);
 
     await tester.pumpWidget(const LittleLearnersApp());
-    await tester.pumpAndSettle();
+    // Fixed pumps rather than pumpAndSettle: the splash breathes on a
+    // loop now, so it never settles. Long enough for the session check
+    // to finish and the entrance to land.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
 
     expect(find.text('LITTLE\nLEARNERS'), findsOneWidget);
     expect(find.text('Play, learn and grow together'), findsOneWidget);
@@ -30,7 +34,8 @@ void main() {
     expect(layoutErrors, isEmpty);
 
     await tester.tap(find.byKey(const ValueKey('splash-continue-button')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
 
     expect(find.text('PARENT'), findsOneWidget);
     expect(find.text('LOGIN'), findsOneWidget);

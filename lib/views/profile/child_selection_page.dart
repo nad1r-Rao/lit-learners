@@ -75,11 +75,21 @@ class _ChildSelectionPageState extends State<ChildSelectionPage> {
               )
             else if (profileVm.profiles.isEmpty)
               _NoLearnersYet(onAddLearner: () => _openAddLearner(context))
-            else
+            else ...[
               _LearnerGrid(
                 profiles: profileVm.profiles,
+                canAdd: profileVm.canCreateProfile,
                 onSelect: (profile) => _startLearning(context, profile),
+                onAddLearner: () => _openAddLearner(context),
               ),
+              if (!profileVm.canCreateProfile) ...[
+                const SizedBox(height: 14),
+                const PlayNote(
+                  'This account holds up to 3 learners. Remove one in the '
+                  'parent area to make room.',
+                ),
+              ],
+            ],
           ],
         ),
       ),
@@ -177,10 +187,20 @@ class _SelectionHero extends StatelessWidget {
 }
 
 class _LearnerGrid extends StatelessWidget {
-  const _LearnerGrid({required this.profiles, required this.onSelect});
+  const _LearnerGrid({
+    required this.profiles,
+    required this.canAdd,
+    required this.onSelect,
+    required this.onAddLearner,
+  });
 
   final List<ChildProfile> profiles;
+
+  /// False once the account holds its three learners.
+  final bool canAdd;
+
   final ValueChanged<ChildProfile> onSelect;
+  final VoidCallback onAddLearner;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +215,7 @@ class _LearnerGrid extends StatelessWidget {
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: profiles.length,
+          itemCount: profiles.length + (canAdd ? 1 : 0),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columnCount,
             crossAxisSpacing: 14,
@@ -203,6 +223,14 @@ class _LearnerGrid extends StatelessWidget {
             childAspectRatio: 0.86,
           ),
           itemBuilder: (context, index) {
+            // The way to add a second learner used to exist only when there
+            // were none at all. After that the only route was the parent
+            // area, behind two separate parental checks, which is why adding
+            // a child looked impossible.
+            if (index == profiles.length) {
+              return _AddLearnerCard(onTap: onAddLearner);
+            }
+
             final profile = profiles[index];
             return _LearnerCard(
               profile: profile,
@@ -317,6 +345,67 @@ class _NoLearnersYet extends StatelessWidget {
             label: const Text('Add a learner'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The last tile in the grid: one more learner.
+///
+/// Deliberately quieter than a learner's own tile — an outline rather than a
+/// solid colour — so a child scanning for their own face is not drawn to it.
+/// It still opens the parental check, so a two-year-old who taps it lands on a
+/// sum rather than on a form.
+class _AddLearnerCard extends StatelessWidget {
+  const _AddLearnerCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Squishy(
+      semanticLabel: 'Add a learner',
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(PlayMotion.radiusLarge),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.75),
+            width: 4,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 74,
+              height: 74,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.22),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 4),
+              ),
+              child: const Icon(Icons.add_rounded, size: 44,
+                  color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Add a learner',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Fredoka',
+                color: Colors.white,
+                fontSize: 18,
+                height: 1.1,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
