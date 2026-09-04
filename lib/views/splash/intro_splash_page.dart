@@ -141,7 +141,7 @@ class _IntroSplashPageState extends State<IntroSplashPage>
 /// what keeps the wheels on the tarmac at every screen size — pinning the road
 /// to a fraction of the screen instead left the koala hovering about forty
 /// pixels above it on a tall phone.
-class _Skater extends StatelessWidget {
+class _Skater extends StatefulWidget {
   const _Skater({
     required this.entrance,
     required this.world,
@@ -153,23 +153,68 @@ class _Skater extends StatelessWidget {
   final bool calm;
 
   /// How deep the tarmac is, measured up from the bottom of this box.
-  static const _roadHeight = 76.0;
+  static const roadHeight = 76.0;
 
   /// The artwork sits this far above the bottom. Its wheels are about a tenth
   /// of its own height up from its lower edge, which lands them on the road's
   /// top surface.
-  static const _lift = 26.0;
+  static const lift = 26.0;
+
+  @override
+  State<_Skater> createState() => _SkaterState();
+}
+
+class _SkaterState extends State<_Skater> with SingleTickerProviderStateMixin {
+  /// Drives the clip directly rather than letting the widget run itself.
+  ///
+  /// Two reasons. It stops the loop ever resting on the clip's last frame,
+  /// where several of the koala's own layers — the sunglasses, an ear, both
+  /// legs — go out of scope and leave a half-drawn animal. And it makes the
+  /// speed ours to set rather than the file's.
+  late final AnimationController _clip = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 5370),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.calm) _start();
+  }
+
+  void _start() => _clip.repeat(min: 0, max: 0.97);
+
+  @override
+  void didUpdateWidget(covariant _Skater oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.calm && _clip.isAnimating) {
+      _clip.stop();
+    } else if (!widget.calm && !_clip.isAnimating) {
+      _start();
+    }
+  }
+
+  @override
+  void dispose() {
+    _clip.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final lottie = Lottie.asset(
       'assets/animations/koala-skate.json',
-      // The clip is 5.4s and this screen lives for 3, so it loops. A skate
-      // loop reads fine cut short; it just looks keen.
-      repeat: !calm,
-      animate: !calm,
+      controller: _clip,
       fit: BoxFit.contain,
       alignment: Alignment.bottomCenter,
+      // The artwork is 441 paths in 429 groups. Walking all of that on every
+      // frame is real work on a phone and more again in a browser, so each
+      // frame is cached as a picture the first time it is drawn and replayed
+      // after that.
+      renderCache: RenderCache.drawingCommands,
+      // The clip is authored at 30fps. Rendering it at 60 doubles the cost
+      // for frames nobody drew.
+      frameRate: const FrameRate(30),
       // A frame that fails to parse must not take the app's first screen with
       // it. The name still lands and the timer still moves on.
       errorBuilder: (context, error, stack) => const SizedBox.shrink(),
@@ -180,31 +225,31 @@ class _Skater extends StatelessWidget {
       children: [
         RepaintBoundary(
           child: AnimatedBuilder(
-            animation: world,
+            animation: widget.world,
             builder: (context, _) => CustomPaint(
               painter: _GroundPainter(
-                t: calm ? 0 : world.value,
-                roadHeight: _roadHeight,
+                t: widget.calm ? 0 : widget.world.value,
+                roadHeight: _Skater.roadHeight,
               ),
               size: Size.infinite,
             ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, _lift),
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, _Skater.lift),
           child: AnimatedBuilder(
-            animation: Listenable.merge([entrance, world]),
+            animation: Listenable.merge([widget.entrance, widget.world]),
             child: lottie,
             builder: (context, child) {
-              // Skates in from the left over the first eight tenths of a
+              // Skates in from the left over the first four tenths of a
               // second, then settles into a gentle bob as if the road were
               // uneven.
               final arrive = Curves.easeOutCubic.transform(
-                (entrance.value / 0.28).clamp(0.0, 1.0),
+                (widget.entrance.value / 0.28).clamp(0.0, 1.0),
               );
-              final bob = calm
+              final bob = widget.calm
                   ? 0.0
-                  : math.sin(world.value * math.pi * 6) * 3 * arrive;
+                  : math.sin(widget.world.value * math.pi * 6) * 3 * arrive;
 
               return Transform.translate(
                 offset: Offset(-320 * (1 - arrive), bob),
