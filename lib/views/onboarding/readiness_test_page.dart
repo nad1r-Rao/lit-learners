@@ -9,8 +9,8 @@ import '../../core/routing/auth_flow_router.dart';
 import '../../models/onboarding.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/onboarding_viewmodel.dart';
-import '../../widgets/app_primary_button.dart';
 import 'widgets/onboarding_language_toggle.dart';
+import '../../widgets/play/play.dart';
 
 class ReadinessTestPage extends StatefulWidget {
   const ReadinessTestPage({super.key});
@@ -175,7 +175,7 @@ class _ReadinessTestPageState extends State<ReadinessTestPage> {
                 ),
                 const SizedBox(height: 12),
               ],
-              AppPrimaryButton(
+              PlayButton(
                 icon: Icons.check_circle,
                 label: strings.submitTest,
                 labelStyle: language.styleFor(null),

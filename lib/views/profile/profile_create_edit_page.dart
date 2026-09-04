@@ -14,8 +14,8 @@ import '../../core/routing/route_names.dart';
 import '../../models/child_profile.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/profile_viewmodel.dart';
-import '../../widgets/app_primary_button.dart';
 import '../../widgets/child_avatar.dart';
+import '../../widgets/play/play.dart';
 
 /// The ages the learning content is authored for. `AgeStageHelper` turns each
 /// one into its own stage, so anything outside this range has no content of
@@ -186,7 +186,7 @@ class _ProfileCreateEditPageState extends State<ProfileCreateEditPage> {
               ),
             ],
             const SizedBox(height: 20),
-            AppPrimaryButton(
+            PlayButton(
               icon: _isUploadingAvatar ? Icons.cloud_upload : Icons.save,
               label: _isUploadingAvatar
                   ? 'Uploading avatar...'

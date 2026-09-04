@@ -8,8 +8,8 @@ import '../../models/learning_reminder.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/learning_reminder_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
-import '../../widgets/app_primary_button.dart';
 import '../../widgets/koala_guide.dart';
+import '../../widgets/play/play.dart';
 
 class ParentRemindersPage extends StatefulWidget {
   const ParentRemindersPage({super.key});
@@ -670,7 +670,7 @@ class _CreateReminderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            AppPrimaryButton(
+            PlayButton(
               icon: Icons.add_alert,
               label: 'Save reminder',
               onPressed: onSubmit,

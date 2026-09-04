@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../widgets/play/play.dart';
 import '../../core/routing/auth_flow_router.dart';
 import '../../core/routing/route_names.dart';
 import '../../models/parent_account.dart';
@@ -73,48 +74,43 @@ class _SplashPageState extends State<SplashPage> {
                       Text(
                         'Play, learn and grow together',
                         textAlign: TextAlign.center,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: AppColors.coral,
-                                  fontSize: compact ? 14 : 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                        style: TextStyle(
+                          fontFamily: 'Fredoka',
+                          color: AppColors.coral,
+                          fontSize: compact ? 18 : 22,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       SizedBox(height: compact ? 12 : 18),
                       _SplashKoala(compact: compact),
                       const Spacer(),
                       FractionallySizedBox(
                         widthFactor: compact ? 0.86 : 0.76,
-                        child: SizedBox(
-                          height: compact ? 52 : 58,
-                          child: FilledButton.icon(
-                            key: const ValueKey('splash-continue-button'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.honey,
-                              foregroundColor: AppColors.coral,
-                              elevation: 5,
-                              shadowColor:
-                                  AppColors.grape.withValues(alpha: 0.28),
-                            ),
-                            onPressed: _isCheckingSession ? null : _continue,
-                            icon: _isCheckingSession
-                                ? const SizedBox.square(
-                                    dimension: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.4,
-                                      color: AppColors.coral,
-                                    ),
-                                  )
-                                : const Icon(Icons.arrow_forward_rounded),
-                            label: Text(
-                              _parent == null
-                                  ? 'Get started'
-                                  : 'Continue learning',
-                            ),
-                          ),
+                        child: PlayButton(
+                          key: const ValueKey('splash-continue-button'),
+                          icon: Icons.arrow_forward_rounded,
+                          // The label stays put while the session check runs.
+                          // Swapping it for "One moment..." made the first
+                          // word a family sees flicker for no reason.
+                          label: _parent == null
+                              ? 'Get started'
+                              : 'Continue learning',
+                          color: PlayColors.sunshine,
+                          textColor: AppColors.coral,
+                          // Not `big`: the splash Column has fixed spacing
+                          // and a Spacer, so a 96px button overflows it on a
+                          // short screen. 72px is still well up from the 58px
+                          // this used to be.
+                          onPressed: _isCheckingSession ? null : _continue,
                         ),
                       ),
-                      SizedBox(height: constraints.maxHeight * 0.105),
+                      // The button is 72px now rather than 52, so a short
+                      // screen needs the bottom gap back. Taking it from
+                      // here rather than shrinking the only control on the
+                      // screen a family taps first.
+                      SizedBox(
+                        height: constraints.maxHeight * (compact ? 0.07 : 0.105),
+                      ),
                     ],
                   ),
                 );
@@ -154,7 +150,7 @@ class _BrandBadge extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 300),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.lime.withValues(alpha: 0.92),
+          color: PlayColors.lime,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.white.withValues(alpha: 0.78)),
           boxShadow: [

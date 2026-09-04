@@ -6,7 +6,7 @@ import '../../core/localization/onboarding_strings.dart';
 import '../../core/routing/route_names.dart';
 import '../../models/onboarding.dart';
 import '../../viewmodels/onboarding_viewmodel.dart';
-import '../../widgets/app_primary_button.dart';
+import '../../widgets/play/play.dart';
 
 /// Sits between the parent guide and the readiness test so the parent picks
 /// the language the test is written in before answering anything.
@@ -105,7 +105,7 @@ class OnboardingLanguagePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              AppPrimaryButton(
+              PlayButton(
                 icon: Icons.arrow_forward,
                 label: strings.continueLabel,
                 labelStyle: language.styleFor(null),

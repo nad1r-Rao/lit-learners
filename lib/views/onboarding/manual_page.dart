@@ -7,8 +7,8 @@ import '../../core/routing/route_names.dart';
 import '../../models/onboarding.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/onboarding_viewmodel.dart';
-import '../../widgets/app_primary_button.dart';
 import 'widgets/onboarding_language_toggle.dart';
+import '../../widgets/play/play.dart';
 
 class ManualPage extends StatefulWidget {
   const ManualPage({super.key});
@@ -131,7 +131,7 @@ class _ManualPageState extends State<ManualPage> {
                           }),
                         ),
                         const SizedBox(height: 14),
-                        AppPrimaryButton(
+                        PlayButton(
                           icon: isLastPage
                               ? Icons.assignment_turned_in
                               : Icons.arrow_forward,

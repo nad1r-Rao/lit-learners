@@ -7,7 +7,7 @@ import '../../core/routing/route_names.dart';
 import '../../core/utils/age_stage_helper.dart';
 import '../../viewmodels/active_child_session.dart';
 import '../../viewmodels/learning_viewmodel.dart';
-import '../../widgets/app_primary_button.dart';
+import '../../widgets/play/play.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   const VideoPlayerPage({
@@ -111,7 +111,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               ],
             ),
             const SizedBox(height: 20),
-            AppPrimaryButton(
+            PlayButton(
               icon: Icons.check_circle,
               label: 'Mark watched',
               onPressed: () => _markWatched(context),
