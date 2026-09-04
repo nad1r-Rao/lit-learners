@@ -404,7 +404,7 @@ class LittleLearnersApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         scrollBehavior: const AppScrollBehavior(),
-        initialRoute: RouteNames.splash,
+        initialRoute: RouteNames.intro,
         onGenerateRoute: AppRouter.generateRoute,
       ),
     );

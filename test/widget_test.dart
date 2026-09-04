@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:little_learners/app.dart';
+import 'package:little_learners/views/splash/intro_splash_page.dart';
 
 void main() {
   testWidgets('LittleLearnersApp shows responsive splash and opens login',
@@ -22,10 +23,13 @@ void main() {
     addTearDown(() => FlutterError.onError = originalOnError);
 
     await tester.pumpWidget(const LittleLearnersApp());
-    // Fixed pumps rather than pumpAndSettle: the splash breathes on a
-    // loop now, so it never settles. Long enough for the session check
-    // to finish and the entrance to land.
+    // Fixed pumps rather than pumpAndSettle: both splash screens move on a
+    // loop, so neither ever settles.
     await tester.pump();
+
+    // The skating intro holds for three seconds, then hands over.
+    expect(find.byType(IntroSplashPage), findsOneWidget);
+    await tester.pump(IntroSplashPage.hold);
     await tester.pump(const Duration(milliseconds: 900));
 
     expect(find.text('LITTLE\nLEARNERS'), findsOneWidget);

@@ -30,6 +30,7 @@ import '../../views/quiz/quiz_page.dart';
 import '../../views/reminders/parent_reminders_page.dart';
 import '../../views/reports/parent_reports_page.dart';
 import '../../views/reward/celebration_page.dart';
+import '../../views/splash/intro_splash_page.dart';
 import '../../views/splash/splash_page.dart';
 import '../../views/video/video_learning_page.dart';
 import '../../views/video/video_player_page.dart';
@@ -139,6 +140,7 @@ class AppRouter {
     return PlayPageRoute<void>(
       settings: settings,
       builder: (_) => switch (settings.name) {
+        RouteNames.intro => const IntroSplashPage(),
         RouteNames.splash => const SplashPage(),
         RouteNames.login => const LoginPage(),
         RouteNames.signup => const SignupPage(),
