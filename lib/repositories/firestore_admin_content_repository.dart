@@ -10,8 +10,11 @@ import '../services/firebase/firestore_content_remote_data_source.dart';
 import 'admin_content_repository.dart';
 
 class FirestoreAdminContentRepository implements AdminContentRepository {
-  FirestoreAdminContentRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  /// [firestore] must be Firestore on the *admin* app — see
+  /// [AdminFirebaseApp]. Required rather than defaulted, because the default
+  /// instance runs as the parent and every write here would be denied.
+  const FirestoreAdminContentRepository({required FirebaseFirestore firestore})
+      : _firestore = firestore;
 
   final FirebaseFirestore _firestore;
 

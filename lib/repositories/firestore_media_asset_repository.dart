@@ -5,10 +5,12 @@ import '../services/storage/media_storage_data_source.dart';
 import 'media_asset_repository.dart';
 
 class FirestoreMediaAssetRepository implements MediaAssetRepository {
-  FirestoreMediaAssetRepository({
-    FirebaseFirestore? firestore,
+  /// [firestore] must be Firestore on the *admin* app — see
+  /// [AdminFirebaseApp].
+  const FirestoreMediaAssetRepository({
+    required FirebaseFirestore firestore,
     required MediaStorageDataSource storageDataSource,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+  })  : _firestore = firestore,
         _storageDataSource = storageDataSource;
 
   static const mediaAssetsCollection = 'mediaAssets';
