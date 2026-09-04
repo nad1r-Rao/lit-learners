@@ -83,7 +83,7 @@ class _ModuleLevelsPageState extends State<ModuleLevelsPage> {
                 onBack: () => Navigator.of(context).maybePop(),
               ),
               if (stops.isNotEmpty)
-                _MapProgress(done: done, total: stops.length),
+                MapProgressBar(done: done, total: stops.length),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
@@ -135,58 +135,6 @@ class _ModuleLevelsPageState extends State<ModuleLevelsPage> {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${level.title} downloaded.')),
-    );
-  }
-}
-
-/// How far along the map the child is, above it rather than buried in it.
-///
-/// Digits and a bar, no words: this screen runs in Urdu too, and a count
-/// reads the same in both.
-class _MapProgress extends StatelessWidget {
-  const _MapProgress({required this.done, required this.total});
-
-  final int done;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      child: Row(
-        children: [
-          const Icon(Icons.flag_rounded, color: Colors.white, size: 26),
-          const SizedBox(width: 10),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: total == 0 ? 0.0 : done / total),
-                duration: PlayMotion.enter,
-                curve: PlayMotion.settleCurve,
-                builder: (context, value, _) {
-                  return LinearProgressIndicator(
-                    value: value,
-                    minHeight: 14,
-                    color: PlayColors.sunshine,
-                    backgroundColor: Colors.white.withValues(alpha: 0.28),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            '$done/$total',
-            style: const TextStyle(
-              fontFamily: 'Fredoka',
-              fontSize: 19,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -39,6 +39,10 @@ void main() {
     expect(learning.canOpenLevel(locked), isFalse);
     expect(learning.canDownloadLevel(locked), isTrue);
 
+    // The levels are a map now, so a stop further along the road can sit
+    // below the fold. Scroll to it the way a parent would before tapping.
+    await tester.ensureVisible(find.widgetWithText(PlayButton, 'Download'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(PlayButton, 'Download'));
     await tester.pumpAndSettle();
 

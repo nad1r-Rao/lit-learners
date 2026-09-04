@@ -222,6 +222,7 @@ class LevelMap extends StatelessWidget {
     required this.onOpen,
     required this.onDownload,
     required this.onLocked,
+    this.badgeFor,
   });
 
   final List<LevelStopData> stops;
@@ -231,6 +232,11 @@ class LevelMap extends StatelessWidget {
   final Color accent;
 
   final TextDirection textDirection;
+
+  /// An optional count to pin on a stop's disc — how many lessons are inside
+  /// it, for subjects where one stop holds several things.
+  final String? Function(LevelStopData stop)? badgeFor;
+
   final ValueChanged<LearningLevel> onOpen;
   final ValueChanged<LearningLevel> onDownload;
   final ValueChanged<String> onLocked;
@@ -291,6 +297,7 @@ class LevelMap extends StatelessWidget {
                       stop: stops[index],
                       accent: accent,
                       isCurrent: index == current,
+                      badge: badgeFor?.call(stops[index]),
                       textDirection: textDirection,
                       onOpen: () => onOpen(stops[index].level),
                       onDownload: () => onDownload(stops[index].level),
@@ -338,11 +345,13 @@ class _MapStop extends StatelessWidget {
     required this.onOpen,
     required this.onDownload,
     required this.onLocked,
+    this.badge,
   });
 
   final LevelStopData stop;
   final Color accent;
   final bool isCurrent;
+  final String? badge;
   final TextDirection textDirection;
   final VoidCallback onOpen;
   final VoidCallback onDownload;
@@ -371,6 +380,7 @@ class _MapStop extends StatelessWidget {
               completed: stop.completed,
               locked: stop.locked,
               isCurrent: isCurrent,
+              badge: badge,
             ),
           ),
         ),
@@ -419,6 +429,7 @@ class _StopDisc extends StatelessWidget {
     required this.completed,
     required this.locked,
     required this.isCurrent,
+    this.badge,
   });
 
   final int number;
@@ -426,6 +437,7 @@ class _StopDisc extends StatelessWidget {
   final bool completed;
   final bool locked;
   final bool isCurrent;
+  final String? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -469,7 +481,46 @@ class _StopDisc extends StatelessWidget {
             ),
     );
 
-    if (!isCurrent) return disc;
+    final withBadge = badge == null
+        ? disc
+        : SizedBox(
+            width: size,
+            height: size,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                disc,
+                Positioned(
+                  right: -6,
+                  top: -2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    constraints: const BoxConstraints(minWidth: 28),
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: PlayColors.bubblegum,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white, width: 3),
+                    ),
+                    child: Text(
+                      badge!,
+                      style: const TextStyle(
+                        fontFamily: 'Fredoka',
+                        fontSize: 14,
+                        height: 1,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+    if (!isCurrent) return withBadge;
 
     // A pointer over the one stop a child should touch next. Overlaid rather
     // than stacked above in a Column, so the disc's centre stays exactly on
@@ -486,7 +537,7 @@ class _StopDisc extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          disc,
+          withBadge,
           Positioned(
             top: -28,
             child: Icon(
@@ -626,6 +677,63 @@ class _StopCard extends StatelessWidget {
               onPressed: onDownload,
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// How far along the map the child is, shown above it rather than buried in
+/// it.
+///
+/// Digits and a bar, no words: these screens run in Urdu too, and a count
+/// reads the same in both.
+class MapProgressBar extends StatelessWidget {
+  const MapProgressBar({
+    super.key,
+    required this.done,
+    required this.total,
+  });
+
+  final int done;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+      child: Row(
+        children: [
+          const Icon(Icons.flag_rounded, color: Colors.white, size: 26),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: total == 0 ? 0.0 : done / total),
+                duration: PlayMotion.enter,
+                curve: PlayMotion.settleCurve,
+                builder: (context, value, _) {
+                  return LinearProgressIndicator(
+                    value: value,
+                    minHeight: 14,
+                    color: PlayColors.sunshine,
+                    backgroundColor: Colors.white.withValues(alpha: 0.28),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '$done/$total',
+            style: const TextStyle(
+              fontFamily: 'Fredoka',
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );
