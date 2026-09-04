@@ -28,7 +28,6 @@ dependencies:
   flutter_timezone: ^5.1.0
   image_picker: ^1.2.3
   flutter_animate: ^4.5.2
-  lottie: ^3.5.1
 
 dev_dependencies:
   flutter_test:

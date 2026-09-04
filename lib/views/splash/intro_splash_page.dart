@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 import '../../core/routing/route_names.dart';
 import '../../widgets/play/play.dart';
@@ -12,7 +11,7 @@ import '../../widgets/play/play.dart';
 /// A koala skates in, the name lands block by block, and a star rolls along a
 /// loading track. Then it hands over to the welcome screen.
 ///
-/// Everything on it is on one clock, and everything except the Lottie is
+/// Everything on it is on one clock, and everything except the koala is
 /// drawn rather than animated by widgets — a scrolling road, drifting clouds,
 /// sparkles. That keeps a screen this busy cheap enough for the phones this
 /// app is actually for.
@@ -141,7 +140,14 @@ class _IntroSplashPageState extends State<IntroSplashPage>
 /// what keeps the wheels on the tarmac at every screen size — pinning the road
 /// to a fraction of the screen instead left the koala hovering about forty
 /// pixels above it on a tall phone.
-class _Skater extends StatefulWidget {
+///
+/// The artwork is an animated GIF, not a Lottie. The Lottie of this same clip
+/// was 441 vector paths redrawn every frame, and on the client's browser it
+/// arrived half-drawn and then stalled. A GIF is decoded a frame at a time by
+/// the platform's own image codec: far cheaper, and one less thing between the
+/// file and the screen. The cost is resolution — the source is 150x132 — so
+/// [artHeight] caps how far it is ever stretched.
+class _Skater extends StatelessWidget {
   const _Skater({
     required this.entrance,
     required this.world,
@@ -155,114 +161,123 @@ class _Skater extends StatefulWidget {
   /// How deep the tarmac is, measured up from the bottom of this box.
   static const roadHeight = 76.0;
 
-  /// The artwork sits this far above the bottom. Its wheels are about a tenth
-  /// of its own height up from its lower edge, which lands them on the road's
-  /// top surface.
-  static const lift = 26.0;
+  /// The source GIF's own proportions.
+  static const aspect = 150 / 132;
 
-  @override
-  State<_Skater> createState() => _SkaterState();
-}
+  /// Ceiling on the drawn height, and so on the upscale: at 300 the picture is
+  /// stretched about 2.3x, which a flat cartoon carries and a photograph would
+  /// not.
+  static const artHeight = 300.0;
 
-class _SkaterState extends State<_Skater> with SingleTickerProviderStateMixin {
-  /// Drives the clip directly rather than letting the widget run itself.
-  ///
-  /// Two reasons. It stops the loop ever resting on the clip's last frame,
-  /// where several of the koala's own layers — the sunglasses, an ear, both
-  /// legs — go out of scope and leave a half-drawn animal. And it makes the
-  /// speed ours to set rather than the file's.
-  late final AnimationController _clip = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 5370),
-  );
+  /// The GIF's canvas is slightly taller than its ink — the lowest pixel of
+  /// the wheels sits this fraction of the height above the bottom edge.
+  /// Measured off the file rather than guessed, which is what lets the wheels
+  /// land on the road at any size.
+  static const inkBottomFraction = 0.083;
 
-  @override
-  void initState() {
-    super.initState();
-    if (!widget.calm) _start();
-  }
-
-  void _start() => _clip.repeat(min: 0, max: 0.97);
-
-  @override
-  void didUpdateWidget(covariant _Skater oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.calm && _clip.isAnimating) {
-      _clip.stop();
-    } else if (!widget.calm && !_clip.isAnimating) {
-      _start();
-    }
-  }
-
-  @override
-  void dispose() {
-    _clip.dispose();
-    super.dispose();
-  }
+  /// How far the wheels bite into the tarmac. A few pixels of overlap reads as
+  /// contact; a perfect tangent reads as hovering.
+  static const bite = 6.0;
 
   @override
   Widget build(BuildContext context) {
-    final lottie = Lottie.asset(
-      'assets/animations/koala-skate.json',
-      controller: _clip,
-      fit: BoxFit.contain,
-      alignment: Alignment.bottomCenter,
-      // The artwork is 441 paths in 429 groups. Walking all of that on every
-      // frame is real work on a phone and more again in a browser, so each
-      // frame is cached as a picture the first time it is drawn and replayed
-      // after that.
-      renderCache: RenderCache.drawingCommands,
-      // The clip is authored at 30fps. Rendering it at 60 doubles the cost
-      // for frames nobody drew.
-      frameRate: const FrameRate(30),
-      // A frame that fails to parse must not take the app's first screen with
-      // it. The name still lands and the timer still moves on.
-      errorBuilder: (context, error, stack) => const SizedBox.shrink(),
-    );
-
     return Stack(
       fit: StackFit.expand,
       children: [
         RepaintBoundary(
           child: AnimatedBuilder(
-            animation: widget.world,
+            animation: world,
             builder: (context, _) => CustomPaint(
               painter: _GroundPainter(
-                t: widget.calm ? 0 : widget.world.value,
-                roadHeight: _Skater.roadHeight,
+                t: calm ? 0 : world.value,
+                roadHeight: roadHeight,
               ),
               size: Size.infinite,
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, _Skater.lift),
-          child: AnimatedBuilder(
-            animation: Listenable.merge([widget.entrance, widget.world]),
-            child: lottie,
-            builder: (context, child) {
-              // Skates in from the left over the first four tenths of a
-              // second, then settles into a gentle bob as if the road were
-              // uneven.
-              final arrive = Curves.easeOutCubic.transform(
-                (widget.entrance.value / 0.28).clamp(0.0, 1.0),
-              );
-              final bob = widget.calm
-                  ? 0.0
-                  : math.sin(widget.world.value * math.pi * 6) * 3 * arrive;
+        LayoutBuilder(
+          builder: (context, constraints) {
+            var height = math.min(artHeight, constraints.maxHeight - 16);
+            final widest = constraints.maxWidth - 24;
+            if (height * aspect > widest) height = widest / aspect;
+            height = height.clamp(120.0, artHeight);
 
-              return Transform.translate(
-                offset: Offset(-320 * (1 - arrive), bob),
-                child: Transform.rotate(
-                  // Leans forward on the way in, straightens up on arrival.
-                  angle: -0.16 * (1 - arrive),
-                  child: child,
+            // Sit the artwork so its lowest ink lands on the road surface.
+            final lift = math.max(
+              0.0,
+              roadHeight - height * inkBottomFraction - bite,
+            );
+
+            return Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: lift),
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([entrance, world]),
+                  child: SizedBox(
+                    width: height * aspect,
+                    height: height,
+                    child: _art(),
+                  ),
+                  builder: (context, child) {
+                    // Skates in from the left over the first four tenths of a
+                    // second, then settles into a gentle bob as if the road
+                    // were uneven.
+                    final arrive = Curves.easeOutCubic.transform(
+                      (entrance.value / 0.28).clamp(0.0, 1.0),
+                    );
+                    final bob = calm
+                        ? 0.0
+                        : math.sin(world.value * math.pi * 6) * 3 * arrive;
+
+                    return Transform.translate(
+                      offset: Offset(-320 * (1 - arrive), bob),
+                      child: Transform.rotate(
+                        // Leans forward on the way in, straightens on arrival.
+                        angle: -0.16 * (1 - arrive),
+                        child: child,
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ],
+    );
+  }
+
+  Widget _art() {
+    const still = Image(
+      image: AssetImage('assets/animations/koala-skate-still.png'),
+      fit: BoxFit.contain,
+      alignment: Alignment.bottomCenter,
+      filterQuality: FilterQuality.medium,
+    );
+
+    // Reduced motion gets the still. A GIF has no controller to pause, and an
+    // endless loop is the exact thing that setting asks us not to draw.
+    if (calm) return still;
+
+    return Image.asset(
+      'assets/animations/koala-skate.gif',
+      fit: BoxFit.contain,
+      alignment: Alignment.bottomCenter,
+      // The source is small, so it is always being enlarged. Bilinear keeps
+      // that soft instead of blocky.
+      filterQuality: FilterQuality.medium,
+      // 800-odd KB has to arrive before the first frame can. Until it does,
+      // show the still — it is the GIF's own frame zero, so the swap is
+      // invisible and the screen is never empty.
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) return child;
+        return still;
+      },
+      // A picture that will not load must not take the app's first screen
+      // with it. The name still lands and the timer still moves on.
+      errorBuilder: (context, error, stack) => const SizedBox.shrink(),
     );
   }
 }
